@@ -28,8 +28,10 @@ export default function Layout({ children }: LayoutProps) {
       <aside className="w-64 flex-shrink-0 fixed h-full bg-white border-r border-gray-200 flex flex-col">
         {/* Logo area */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <img src="/icon_128.png" alt="Apex Toolbox" className="w-8 h-8 mr-2" />
-          <span className="text-xl font-semibold">toolbox</span>
+          <img src="/icon_128_purp.png" alt="apex toolbox" className="w-8 h-8 mr-2" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-xl font-semibold">apex toolbox</span>
+          </div>
         </div>
 
         {/* Menu items */}

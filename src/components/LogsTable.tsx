@@ -118,7 +118,7 @@ export function LogsTable({
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -top-8 right-4 bg-white border border-gray-200 rounded-t-lg px-4 py-1 text-sm"
       >
-        {isCollapsed ? "Show Logs" : "Hide Logs"}
+        {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
       </button>
 
       {/* Table content */}
