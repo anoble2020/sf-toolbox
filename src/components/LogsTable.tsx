@@ -101,7 +101,7 @@ export function LogsTable({
   return (
     <div 
       className={cn(
-        "fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 transition-all duration-300",
+        "fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 transition-all duration-300 z-40",
         isCollapsed ? "h-12" : ""
       )}
       style={{ height: isCollapsed ? '48px' : `${tableHeight}px` }}

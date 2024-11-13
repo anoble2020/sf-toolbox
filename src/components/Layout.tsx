@@ -23,19 +23,17 @@ export default function Layout({ children }: LayoutProps) {
   ];
 
   return (
-    <div className="flex h-screen">
-      {/* Fixed width sidebar */}
-      <aside className="w-64 flex-shrink-0 fixed h-full bg-white border-r border-gray-200 flex flex-col">
-        {/* Logo area */}
+    <div className="h-screen flex">
+      {/* Fixed sidebar */}
+      <aside className="w-64 fixed inset-y-0 left-0 flex flex-col bg-white border-r border-gray-200">
+        {/* Logo section */}
         <div className="h-16 flex items-center px-6 border-b border-gray-200">
           <img src="/icon_128_purp.png" alt="apex toolbox" className="w-8 h-8 mr-2" />
-          <div className="flex flex-col leading-tight">
-            <span className="text-xl font-semibold">apex toolbox</span>
-          </div>
+          <span className="text-xl font-semibold">apex toolbox</span>
         </div>
 
-        {/* Menu items */}
-        <nav className="mt-6 px-3 flex-1">
+        {/* Navigation */}
+        <nav className="flex-1 mt-6 px-3">
           {menuItems.map((item) => (
             <Link
               key={item.path}
@@ -81,22 +79,24 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </aside>
 
-      {/* Main content with left margin to account for fixed sidebar */}
-      <main className="ml-64 flex-1 overflow-x-auto">
-        {/* Header with avatar */}
-        <header className="h-16 border-b border-gray-200 px-6 flex items-center justify-between">
-          <ApiLimits />
-          <UserNav 
-            username={localStorage.getItem('sf_user_info') ? JSON.parse(localStorage.getItem('sf_user_info')!).username : ''}
-            orgDomain={localStorage.getItem('sf_user_info') ? JSON.parse(localStorage.getItem('sf_user_info')!).instance_url : ''}
-          />
+      {/* Main content */}
+      <div className="ml-64 flex-1 flex flex-col">
+        {/* Header */}
+        <header className="h-16 bg-white border-b border-gray-200">
+          <div className="flex items-center justify-between h-full px-6">
+            <ApiLimits />
+            <UserNav 
+              username={localStorage.getItem('sf_user_info') ? JSON.parse(localStorage.getItem('sf_user_info')!).username : ''}
+              orgDomain={localStorage.getItem('sf_user_info') ? JSON.parse(localStorage.getItem('sf_user_info')!).instance_url : ''}
+            />
+          </div>
         </header>
-        
+
         {/* Main content area */}
-        <div className="flex-1 overflow-auto relative">
+        <main className="flex-1 overflow-auto">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
     </div>
   );
 } 
