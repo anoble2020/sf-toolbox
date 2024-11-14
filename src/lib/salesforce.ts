@@ -10,6 +10,7 @@ interface SalesforceResponse<T> {
 interface ApexLog {
   Id: string
   LogUser: {
+    Id: string
     Name: string
   }
   Operation: string
@@ -18,6 +19,20 @@ interface ApexLog {
   LogLength: number
   LastModifiedDate: string
   DurationMilliseconds: number
+}
+
+interface DebugLevel {
+  Id: string
+  DeveloperName: string
+}
+
+interface TraceFlag {
+  Id: string
+  LogType: string
+  StartDate: string
+  ExpirationDate: string
+  DebugLevelId: string
+  TracedEntityId: string
 }
 
 export function updateApiLimitsFromHeaders(headers: Headers) {
@@ -50,8 +65,10 @@ export function updateApiLimitsFromHeaders(headers: Headers) {
   }
 }
 
-export const queryLogs = async (): Promise<ApexLog[]> => {
+export const queryLogs = async (currentUserOnly = false): Promise<ApexLog[]> => {
   const refreshToken = localStorage.getItem('sf_refresh_token')
+  const userInfo = JSON.parse(localStorage.getItem('sf_user_info') || '{}')
+  
   if (!refreshToken) {
     throw new Error('No refresh token found')
   }
@@ -61,8 +78,10 @@ export const queryLogs = async (): Promise<ApexLog[]> => {
     const { access_token, instance_url } = await refreshAccessToken(refreshToken)
     console.log('Got access token, fetching logs...')
 
+    const query = 'SELECT Id, LogUser.Id, LogUser.Name, Operation, Request, Status, LogLength, LastModifiedDate, DurationMilliseconds FROM ApexLog ORDER BY LastModifiedDate DESC LIMIT 100'
+
     const response = await fetch(
-      `/api/salesforce/logs?instance_url=${encodeURIComponent(instance_url)}`,
+      `/api/salesforce/logs?instance_url=${encodeURIComponent(instance_url)}&query=${encodeURIComponent(query)}`,
       {
         headers: {
           Authorization: `Bearer ${access_token}`,
@@ -92,6 +111,7 @@ export const queryLogs = async (): Promise<ApexLog[]> => {
       return {
         Id: record.Id,
         LogUser: {
+          Id: record.LogUser?.Id || '',
           Name: record.LogUser?.Name || 'Unknown'
         },
         Operation: record.Operation || '',
@@ -132,4 +152,92 @@ export const getLogBody = async (logId: string): Promise<string> => {
   }
 
   return response.text()
+}
+
+export const createTraceFlag = async (userId: string): Promise<void> => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  try {
+    const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+
+    // First, get the SFDC_DevConsole debug level ID using Tooling API
+    const debugLevelResponse = await fetch(
+      `/api/salesforce/tooling/query?q=${encodeURIComponent(
+        "SELECT Id FROM DebugLevel WHERE DeveloperName = 'SFDC_DevConsole'"
+      )}&instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    )
+
+    console.log('Debug level response:', debugLevelResponse)
+
+    if (!debugLevelResponse.ok) {
+      const errorData = await debugLevelResponse.json()
+      console.error('Debug level fetch failed:', {
+        status: debugLevelResponse.status,
+        statusText: debugLevelResponse.statusText,
+        error: errorData
+      })
+      throw new Error(`Failed to fetch debug level: ${debugLevelResponse.statusText}`)
+    }
+
+    const debugLevelData = await debugLevelResponse.json()
+    if (!debugLevelData.records?.[0]?.Id) {
+      throw new Error('Debug level not found')
+    }
+
+    const debugLevelId = debugLevelData.records[0].Id
+    console.log('Debug level ID:', debugLevelId)
+
+    // Calculate dates for the trace flag
+    const now = new Date()
+    const expiration = new Date(now.getTime() + 24 * 60 * 60 * 1000) // 24 hours from now
+
+    const requestBody = {
+        LogType: 'DEVELOPER_LOG',
+        StartDate: now.toISOString(),
+        ExpirationDate: expiration.toISOString(),
+        DebugLevelId: debugLevelId,
+        TracedEntityId: userId,
+    }
+
+    console.log('Creating trace flag with request body:', requestBody)
+    console.log('Creating trace flag with instance_url:', instance_url)
+
+    // Create the trace flag
+    const response = await fetch(
+      `/api/salesforce/traceflags?instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      }
+    )
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      console.error('Failed to create trace flag:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: errorData
+      })
+      throw new Error(`Failed to create trace flag: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    console.log('Trace flag created successfully:', data)
+
+  } catch (error) {
+    console.error('Error creating trace flag:', error)
+    throw error
+  }
 } 
