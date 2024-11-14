@@ -43,7 +43,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="h-screen flex">
       {/* Fixed sidebar */}
-      <aside className="w-64 fixed inset-y-0 left-0 flex flex-col bg-white border-r border-gray-200">
+      <aside className="w-64 fixed inset-y-0 left-0 flex flex-col bg-white border-r border-gray-200 z-50">
         {/* Logo section */}
         <div className="h-16 flex flex-col justify-center px-6 border-b border-gray-200">
           <div className="flex items-center mt-2">
@@ -103,14 +103,14 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="ml-64 flex-1 flex flex-col">
-        {/* Header - adjusted height to match logo section */}
-        <header className="h-16 border-b border-gray-200 px-4 flex items-center justify-between bg-white">
-          <div className="flex items-center space-x-4">
+      {/* Main content wrapper */}
+      <div className="ml-64 flex-1 flex flex-col min-w-0">
+        {/* Fixed header */}
+        <header className="h-16 fixed top-0 right-0 left-64 border-b border-gray-200 px-4 flex items-center justify-between bg-white z-40">
+          <div className="flex-none">
             <ApiLimits />
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex-none">
             <UserNav 
               username={userInfo?.username || ''}
               orgDomain={userInfo?.instance_url || ''}
@@ -118,8 +118,8 @@ export default function Layout({ children }: LayoutProps) {
           </div>
         </header>
 
-        {/* Main content area */}
-        <main className="flex-1 overflow-auto">
+        {/* Scrollable content area */}
+        <main className="mt-16 flex-1 overflow-auto">
           {children}
         </main>
       </div>

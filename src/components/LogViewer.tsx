@@ -16,16 +16,26 @@ interface LogViewerProps {
   isLoading?: boolean
 }
 
+interface CollapsibleLine {
+  id: string;
+  time: string;
+  summary: string;
+  details?: string;
+  type: 'SOQL' | 'JSON' | 'STANDARD';
+  isExpanded?: boolean;
+}
+
 export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [filteredLines, setFilteredLines] = useState<string[]>([])
+  const [filteredLines, setFilteredLines] = useState<CollapsibleLine[]>([])
   const [showTimeline, setShowTimeline] = useState(false)
   const [debugOnly, setDebugOnly] = useState(false)
   const [showReplay, setShowReplay] = useState(false)
   const [selectedLine, setSelectedLine] = useState<number | null>(null)
   const [showAllLogs, setShowAllLogs] = useState(false)
   const [prettyMode, setPrettyMode] = useState(false)
-  
+  const [expandedLines, setExpandedLines] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     if (!content) {
       setFilteredLines([])
@@ -45,11 +55,57 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
     }
     
     if (prettyMode) {
-      lines = formatLogs(lines)
+      const formattedLines = formatLogs(lines)
+      setFilteredLines(formattedLines)
+    } else {
+      setFilteredLines(lines.map((line, index) => ({
+        id: `line_${index}`,
+        time: '',
+        summary: line,
+        type: 'STANDARD',
+        isCollapsible: false
+      })))
     }
-    
-    setFilteredLines(lines)
   }, [content, searchQuery, debugOnly, prettyMode])
+
+  const toggleLine = (lineId: string) => {
+    setExpandedLines(prev => {
+      const next = new Set(prev);
+      if (next.has(lineId)) {
+        next.delete(lineId);
+      } else {
+        next.add(lineId);
+      }
+      return next;
+    });
+  };
+
+  const renderLine = (line: CollapsibleLine) => {
+    if (!prettyMode || !line.isCollapsible) {
+      return <div className="py-1 pl-2">{line.summary}</div>;
+    }
+
+    const isExpanded = expandedLines.has(line.id);
+    
+    return (
+      <div 
+        className="cursor-pointer hover:bg-gray-50 py-1"
+        onClick={() => toggleLine(line.id)}
+      >
+        <div className="pl-2 flex items-center gap-2">
+          <span className="text-gray-500">
+            {isExpanded ? '▼' : '▶'}
+          </span>
+          {line.summary}
+        </div>
+        {isExpanded && line.details && (
+          <div className="pl-8 py-2 bg-gray-50 font-mono text-sm">
+            {line.details}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="h-full flex flex-col">
@@ -124,12 +180,12 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
         </div>
         )}
       {/* Log content */}
-      <div className="flex-1 overflow-auto min-h-0">
-        <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
-          {filteredLines.map((line, index) => (
-            <div key={index}>{line}</div>
-          ))}
-        </pre>
+      <div className="flex-1 overflow-auto font-mono text-sm">
+        {filteredLines.map((line, index) => (
+          <div key={index}>
+            {renderLine(line)}
+          </div>
+        ))}
       </div>
     </div>
   )

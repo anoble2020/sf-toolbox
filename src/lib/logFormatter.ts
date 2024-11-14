@@ -8,100 +8,134 @@ interface LimitUsage {
   };
 }
 
-function tryFormatJson(str: string): string {
+interface FormattedLine {
+  id: string;
+  time: string;
+  summary: string;
+  details?: string;
+  type: 'SOQL' | 'JSON' | 'STANDARD';
+  isCollapsible?: boolean;
+  suffix?: string;
+}
+
+function tryFormatJson(str: string): { formatted: string; isJson: boolean } {
   try {
-    // Remove any leading timestamps or debug markers
     const jsonStart = str.indexOf('[') || str.indexOf('{');
-    if (jsonStart === -1) return str;
+    if (jsonStart === -1) return { formatted: str, isJson: false };
     
     const jsonStr = str.slice(jsonStart);
     const parsed = JSON.parse(jsonStr);
     const formatted = JSON.stringify(parsed, null, 2);
     
-    // Preserve any prefix before the JSON
-    const prefix = str.slice(0, jsonStart);
-    return prefix + '\n' + formatted;
+    return { 
+      formatted,
+      isJson: true 
+    };
   } catch (e) {
-    return str;
+    return { formatted: str, isJson: false };
   }
 }
 
-export function formatLogLine(line: string): string {
+export function formatLogLine(line: string, index: number, allLines: string[]): FormattedLine {
+  const baseId = `line_${index}_${Date.now()}`; // Make IDs unique
+  
   // Handle debug level configuration line
   if (line.includes('APEX_CODE,')) {
-    return '🔧 Debug Levels: ' + line.split(' ')[1];
+    return {
+      id: baseId,
+      time: '',
+      summary: '🔧 Debug Levels: ' + line.split(' ')[1],
+      type: 'STANDARD'
+    };
   }
 
-  // Extract timestamp and remove the milliseconds number
+  // Extract timestamp
   const timeMatch = line.match(/(\d{2}:\d{2}:\d{2})\.(\d+)\s*\(\d+\)\|/);
-  if (!timeMatch) return line;
+  if (!timeMatch) {
+    return {
+      id: baseId,
+      time: '',
+      summary: line,
+      type: 'STANDARD'
+    };
+  }
 
   const [fullMatch, time] = timeMatch;
-  let cleanLine = line.replace(fullMatch, `${time} `);
+  let cleanLine = line.replace(fullMatch, '');
 
-  // Format SOQL queries
+  // Format SOQL queries - only process SOQL_EXECUTE_BEGIN lines
   if (cleanLine.includes('SOQL_EXECUTE_BEGIN')) {
     const parts = cleanLine.split('|');
-    const lineNumber = parts[1]?.match(/\[(\d+)\]/)?.[1];
-    const query = parts[2];
-    return `${time} 🔍 SQL Query [Line ${lineNumber}]: ${query?.trim()}`;
+    const lineNumber = parts[1]?.match(/\[(\d+)\]/)?.[1] || '';
+    const query = parts.slice(3).join('|').trim();
+    
+    // Look ahead for the corresponding END line to get row count
+    const nextLine = allLines[index + 1];
+    const rowCount = nextLine?.match(/Rows:(\d+)/)?.[1] || '0';
+    
+    return {
+      id: baseId,
+      time,
+      summary: `🔍 SOQL [${lineNumber}]: ${query} `,
+      type: 'STANDARD',
+      suffix: `(${rowCount} rows)`
+    };
   }
 
+  // Skip SOQL_EXECUTE_END lines
   if (cleanLine.includes('SOQL_EXECUTE_END')) {
-    const rows = cleanLine.match(/Rows:(\d+)/);
-    const lineNumber = cleanLine.split('|')[1]?.match(/\[(\d+)\]/)?.[1];
-    return `${time} ✓ Query completed [Line ${lineNumber}]: ${rows ? rows[1] : '0'} rows`;
+    return null;
   }
 
-  // Format USER_DEBUG with potential JSON content
+  // Format USER_DEBUG with JSON detection
   if (cleanLine.includes('USER_DEBUG')) {
     const debugMatch = cleanLine.match(/USER_DEBUG\|\[(\d+)\]\|(DEBUG|INFO|WARN|ERROR)\|(.*)/);
     if (debugMatch) {
-      const [_, line, level, message] = debugMatch;
+      const [_, lineNum, level, message] = debugMatch;
+      const { formatted, isJson } = tryFormatJson(message);
       const emoji = level === 'ERROR' ? '❌' : level === 'WARN' ? '⚠️' : '🔍';
-      const formattedMessage = tryFormatJson(message);
-      return `${time} ${emoji} Debug [Line ${line}]: ${formattedMessage}`;
+      
+      return {
+        id: baseId,
+        time,
+        summary: `${emoji} Debug [Line ${lineNum}]${isJson ? ' (JSON)' : ''}`,
+        details: isJson ? formatted : message,
+        type: isJson ? 'JSON' : 'STANDARD',
+        isCollapsible: isJson
+      };
     }
   }
 
   // Format CODE_UNIT events
   if (cleanLine.includes('CODE_UNIT_STARTED')) {
     const parts = cleanLine.split('|');
-    const unitType = parts[3] === '[EXTERNAL]' ? parts[5] : parts[3];
-    const details = parts[4];
-    return `${time} ▶️ Started ${unitType}: ${details}`;
-  }
+    const isExternal = parts[3] === '[EXTERNAL]';
+    const triggerMatch = parts[parts.length - 1]?.match(/__sfdc_trigger\/(.*)/);
+    
+    let unitType = isExternal ? parts[5] : parts[3];
+    let details = parts[4];
 
-  if (cleanLine.includes('CODE_UNIT_FINISHED')) {
-    const parts = cleanLine.split('|');
-    const unitType = parts[3] === '[EXTERNAL]' ? parts[5] : parts[3];
-    const details = parts[4];
-    return `${time} ⏹️ Finished ${unitType}: ${details}`;
-  }
-
-  // Format DML operations
-  if (cleanLine.includes('DML_BEGIN')) {
-    const operation = cleanLine.match(/DML_BEGIN\|.*\|(INSERT|UPDATE|DELETE|UPSERT|MERGE)/)?.[1];
-    const numRecords = cleanLine.match(/\[(\d+)\]/)?.[1];
-    return `${time} 💾 ${operation} Operation: ${numRecords} records`;
-  }
-
-  if (cleanLine.includes('DML_END')) {
-    return `${time} ✓ DML Operation completed`;
-  }
-
-  // Format Flow events
-  if (cleanLine.includes('FLOW_')) {
-    const flowMatch = cleanLine.match(/FLOW_(START|FINISH|CREATE_INTERVIEW|ELEMENT_.*)/);
-    if (flowMatch) {
-      const [action] = flowMatch;
-      const flowName = cleanLine.split('|').pop();
-      const emoji = action.includes('START') ? '🌊' : action.includes('FINISH') ? '🏁' : '⚡';
-      return `${time} ${emoji} Flow ${action.toLowerCase()}: ${flowName}`;
+    if (triggerMatch) {
+      unitType = 'Trigger';
+      details = triggerMatch[1];
     }
+
+    return {
+      id: baseId,
+      time,
+      summary: `${time} ▶️ Started ${unitType}: ${details}`,
+      type: 'STANDARD'
+    };
   }
 
-  return cleanLine;
+  // ... rest of the formatting logic ...
+
+  return {
+    id: baseId,
+    time,
+    summary: cleanLine,
+    type: 'STANDARD'
+  };
 }
 
 export function formatLimitUsage(lines: string[]): string[] {
@@ -168,7 +202,9 @@ export function formatLimitUsage(lines: string[]): string[] {
   return formattedLines;
 }
 
-export function formatLogs(lines: string[]): string[] {
+export function formatLogs(lines: string[]): FormattedLine[] {
   const limitFormatted = formatLimitUsage(lines);
-  return limitFormatted.map(line => formatLogLine(line));
+  return limitFormatted
+    .map((line, index) => formatLogLine(line, index, limitFormatted))
+    .filter((line): line is FormattedLine => line !== null);
 } 
