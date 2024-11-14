@@ -26,17 +26,26 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="mb-8">
-        <img src="/icon_128.png" alt="toolkit" className="w-16 h-16" />
+      <div className="mb-4">
+        <img src="/icon_128_purp.png" alt="toolkit" className="w-16 h-16" />
       </div>
-      <h1 className="text-2xl font-semibold mb-8">toolkit</h1>
+      <h1 className="text-2xl font-semibold mb-8">apex toolkit</h1>
+      <div className="flex gap-4">
       <Button 
         size="lg"
         onClick={handleLogin}
         className="font-medium"
       >
-        Connect to Salesforce
+        Sandbox
       </Button>
+      <Button 
+        size="lg"
+        onClick={handleLogin}
+        className="font-medium"
+      >
+        Production
+      </Button>
+      </div>
     </div>
   )
 } 

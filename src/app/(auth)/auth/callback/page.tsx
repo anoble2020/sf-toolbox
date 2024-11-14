@@ -2,6 +2,7 @@
 
 import { useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
+import { createTraceFlag } from '@/lib/salesforce'
 
 console.log('CallbackPage component defined')
 
@@ -50,20 +51,38 @@ export default function CallbackPage() {
       return response.json();
     })
     .then(data => {
-      if (data.tokens?.refresh_token) {
-        // Store in localStorage for client-side access
-        localStorage.setItem('sf_refresh_token', data.tokens.refresh_token)
-        localStorage.setItem('sf_user_info', JSON.stringify(data.user))
-        
-        // Store in cookies for server-side access
-        document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
-        
-        console.log('Stored tokens, redirecting to /logs...')
-        router.push('/logs')
-      } else {
+      console.log('Received data from token endpoint:', data);
+      
+      if (!data.tokens?.refresh_token) {
         console.error('No refresh token in response:', data)
         router.push('/auth')
+        return
       }
+
+      if (!data.user) {
+        console.error('No user data in response:', data)
+        router.push('/auth')
+        return
+      }
+
+      console.log('got user info:', data.user);
+      // Store in localStorage for client-side access
+      localStorage.setItem('sf_refresh_token', data.tokens.refresh_token)
+      localStorage.setItem('sf_user_info', JSON.stringify(data.user))
+      
+      // Store in cookies for server-side access
+      document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
+
+      // Make sure we have a user ID before creating trace flag
+      if (data.user.user_id) {
+        createTraceFlag(data.user.user_id)
+          .catch(error => console.error('Failed to create trace flag:', error))
+      } else {
+        console.warn('No user ID found in response:', data)
+      }
+      
+      console.log('Stored tokens, redirecting to /logs...')
+      router.push('/logs')
     })
     .catch(error => {
       console.error('Fetch error:', error);

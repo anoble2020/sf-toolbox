@@ -33,7 +33,7 @@ export async function POST(request: Request) {
       console.error('Token response error:', tokens)
       return NextResponse.json({ error: tokens.error_description }, { status: 400 })
     }else{
-        console.log('Token response error:', tokenResponse) // Debug log
+        console.log('Token response ok:', tokenResponse) // Debug log
     }
 
     // Get user info

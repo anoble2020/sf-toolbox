@@ -17,16 +17,20 @@ import {
 import { Button } from "@/components/ui/button"
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { RefreshCw } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 interface Log {
   id: string
   user: string
+  userId: string
   operation: string
   time: string
   duration: string
   status: string
   size: string
-  content: string
+  content?: string
   durationMilliseconds?: number
 }
 
@@ -41,17 +45,25 @@ type HeaderConfig = {
   label: string
 }
 
+interface LogsTableProps {
+  logs: Log[]
+  onSelectLog: (log: Log) => void
+  onRefresh: () => void
+  currentUserOnly: boolean
+  onToggleCurrentUser: (checked: boolean) => void
+}
+
 export function LogsTable({ 
   logs,
-  onSelectLog 
-}: { 
-  logs: Log[]
-  onSelectLog: (log: Log) => void 
-}) {
+  onSelectLog,
+  onRefresh,
+  currentUserOnly,
+  onToggleCurrentUser
+}: LogsTableProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'time', direction: 'desc' });
-  const logsPerPage = 10;
+  const logsPerPage = 5;
   const [tableHeight, setTableHeight] = useState(300);
   const [isResizing, setIsResizing] = useState(false);
   const resizeRef = useRef<HTMLDivElement>(null);
@@ -168,13 +180,23 @@ export function LogsTable({
         onMouseDown={() => setIsResizing(true)}
       />
 
-      {/* Collapse toggle button */}
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="absolute -top-8 right-4 bg-white border border-gray-200 rounded-t-lg px-4 py-1 text-sm"
-      >
-        {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-      </button>
+      {/* Table controls */}
+      <div className="absolute -top-8 right-4 flex gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={onRefresh}
+          className="rounded-t-lg rounded-b-none"
+        >
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="bg-white border border-gray-200 rounded-t-lg px-4 py-1 text-sm"
+        >
+          {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </button>
+      </div>
 
       {/* Table content */}
       <div className={cn(
@@ -224,8 +246,20 @@ export function LogsTable({
 
         {/* Pagination */}
         <div className="flex justify-between items-center p-2 border-t">
-          <div className="text-xs text-gray-500">
-            Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
+          <div className="flex items-center gap-4">
+            <div className="text-xs text-gray-500">
+              Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="current-user-logs"
+                checked={currentUserOnly}
+                onCheckedChange={onToggleCurrentUser}
+              />
+              <Label htmlFor="current-user-logs" className="text-xs text-gray-600">
+                My Logs Only
+              </Label>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button

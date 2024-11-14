@@ -3,11 +3,8 @@ import { CircleDashed } from 'lucide-react'
 
 export function ApiLimits() {
   const { limits } = useApiLimits()
-  
-  console.log('ApiLimits render:', limits)
-  
+    
   if (!limits.used && !limits.total) {
-    console.log('No limits data yet')
     return null
   }
   

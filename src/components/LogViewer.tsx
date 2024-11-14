@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Timeline } from "@/components/Timeline"
 import { TraceViewer } from "@/components/TraceViewer"
+import { LogReplay } from "@/components/LogReplay"
+import { formatLogs } from '@/lib/logFormatter'
 
 interface LogViewerProps {
   content: string
@@ -19,6 +21,10 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   const [filteredLines, setFilteredLines] = useState<string[]>([])
   const [showTimeline, setShowTimeline] = useState(false)
   const [debugOnly, setDebugOnly] = useState(false)
+  const [showReplay, setShowReplay] = useState(false)
+  const [selectedLine, setSelectedLine] = useState<number | null>(null)
+  const [showAllLogs, setShowAllLogs] = useState(false)
+  const [prettyMode, setPrettyMode] = useState(false)
   
   useEffect(() => {
     if (!content) {
@@ -38,8 +44,12 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
       )
     }
     
+    if (prettyMode) {
+      lines = formatLogs(lines)
+    }
+    
     setFilteredLines(lines)
-  }, [content, searchQuery, debugOnly])
+  }, [content, searchQuery, debugOnly, prettyMode])
 
   return (
     <div className="h-full flex flex-col">
@@ -58,6 +68,16 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
             </span>
           </div>
           <div className="flex items-center gap-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+            id="pretty-mode"
+            checked={prettyMode}
+            onCheckedChange={setPrettyMode}
+            />
+            <Label htmlFor="pretty-mode" className="text-sm text-gray-600">
+            Pretty
+            </Label>
+        </div>
             <div className="flex items-center space-x-2">
               <Switch
                 id="debug-mode"
@@ -74,7 +94,14 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
               onClick={() => setShowTimeline(!showTimeline)}
             >
               <LineChart className="w-4 h-4 mr-1" />
-              {showTimeline ? 'Hide Timeline' : 'Analyze Timeline'}
+              {showTimeline ? 'Hide Timeline' : 'Timeline'}
+            </Button>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowReplay(!showReplay)}
+                >
+                {showReplay ? 'Hide Replay' : 'Replay'}
             </Button>
           </div>
         </div>
@@ -87,7 +114,15 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
           <TraceViewer content={content} />
         </div>
       )}
-
+        {/* Replay section */}
+        {showReplay && (
+        <div className="flex-none bg-gray-50 border-b border-gray-200">
+            <LogReplay 
+            content={content} 
+            onLineSelect={setSelectedLine}
+            />
+        </div>
+        )}
       {/* Log content */}
       <div className="flex-1 overflow-auto min-h-0">
         <pre className="p-4 text-sm font-mono whitespace-pre-wrap">
