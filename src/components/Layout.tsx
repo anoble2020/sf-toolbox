@@ -6,13 +6,31 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import UserNav from '@/components/UserNav';
 import { ApiLimits } from '@/components/ApiLimits';
+import { useEffect, useState } from 'react';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
+interface UserInfo {
+  username: string;
+  instance_url: string;
+}
+
 export default function Layout({ children }: LayoutProps) {
   const pathname = usePathname();
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+
+  useEffect(() => {
+    const userInfoStr = localStorage.getItem('sf_user_info');
+    if (userInfoStr) {
+      try {
+        setUserInfo(JSON.parse(userInfoStr));
+      } catch (e) {
+        console.error('Failed to parse user info:', e);
+      }
+    }
+  }, []);
 
   const menuItems = [
     { name: 'Logs', path: '/logs', icon: Scroll },
@@ -27,9 +45,15 @@ export default function Layout({ children }: LayoutProps) {
       {/* Fixed sidebar */}
       <aside className="w-64 fixed inset-y-0 left-0 flex flex-col bg-white border-r border-gray-200">
         {/* Logo section */}
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <img src="/icon_128_purp.png" alt="apex toolbox" className="w-8 h-8 mr-2" />
-          <span className="text-xl font-semibold">apex toolbox</span>
+        <div className="h-16 flex flex-col justify-center px-6 border-b border-gray-200">
+          <div className="flex items-center mt-2">
+            <img src="/icon_128_purp.png" alt="apex toolbox" className="w-8 h-8 mb-6 mr-2" />
+            <span className="text-xl font-semibold">apex toolbox
+            <div className="text-[10px] text-gray-400 -mt-1 ml-10">
+            v0.0.1
+          </div>
+          </span>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -81,13 +105,15 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Main content */}
       <div className="ml-64 flex-1 flex flex-col">
-        {/* Header */}
-        <header className="h-16 bg-white border-b border-gray-200">
-          <div className="flex items-center justify-between h-full px-6">
+        {/* Header - adjusted height to match logo section */}
+        <header className="h-16 border-b border-gray-200 px-4 flex items-center justify-between bg-white">
+          <div className="flex items-center space-x-4">
             <ApiLimits />
+          </div>
+          <div className="flex items-center space-x-4">
             <UserNav 
-              username={localStorage.getItem('sf_user_info') ? JSON.parse(localStorage.getItem('sf_user_info')!).username : ''}
-              orgDomain={localStorage.getItem('sf_user_info') ? JSON.parse(localStorage.getItem('sf_user_info')!).instance_url : ''}
+              username={userInfo?.username || ''}
+              orgDomain={userInfo?.instance_url || ''}
             />
           </div>
         </header>

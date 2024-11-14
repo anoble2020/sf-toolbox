@@ -4,11 +4,16 @@ import { CircleDashed } from 'lucide-react'
 export function ApiLimits() {
   const { limits } = useApiLimits()
   
-  if (!limits.total) return null
+  console.log('ApiLimits render:', limits)
+  
+  if (!limits.used && !limits.total) {
+    console.log('No limits data yet')
+    return null
+  }
   
   const usagePercent = (limits.used / limits.total) * 100
   const isHighUsage = usagePercent > 80
-  
+
   return (
     <div className="flex flex-col items-center">
       <span className="text-xs text-gray-500 mb-1">API Calls</span>

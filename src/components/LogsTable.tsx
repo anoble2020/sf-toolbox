@@ -27,11 +27,18 @@ interface Log {
   status: string
   size: string
   content: string
+  durationMilliseconds?: number
 }
 
 interface SortConfig {
   key: keyof Log
   direction: "asc" | "desc"
+}
+
+// Create a type for the header configuration
+type HeaderConfig = {
+  key: keyof Log
+  label: string
 }
 
 export function LogsTable({ 
@@ -98,6 +105,54 @@ export function LogsTable({
     currentPage * logsPerPage
   )
   
+  // Add a helper function to format duration
+  const formatDuration = (ms?: number): string => {
+    if (!ms) return '-'
+    
+    if (ms < 1000) {
+      return `${ms}ms`
+    }
+    
+    const seconds = Math.floor(ms / 1000)
+    const remainingMs = ms % 1000
+    
+    if (seconds < 60) {
+      return `${seconds}.${remainingMs.toString().padStart(3, '0')}s`
+    }
+    
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    
+    return `${minutes}m ${remainingSeconds}s`
+  }
+
+  // Add a helper function to format datetime
+  const formatDateTime = (dateStr: string): string => {
+    try {
+      const date = new Date(dateStr)
+      return new Intl.DateTimeFormat('en-US', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(date)
+    } catch (e) {
+      return dateStr
+    }
+  }
+
+  // Define headers with their sort keys
+  const headers: HeaderConfig[] = [
+    { key: 'user', label: 'User' },
+    { key: 'operation', label: 'Operation' },
+    { key: 'time', label: 'Time' },
+    { key: 'duration', label: 'Duration' },
+    { key: 'status', label: 'Status' },
+    { key: 'size', label: 'Size' }
+  ]
+
   return (
     <div 
       className={cn(
@@ -127,17 +182,17 @@ export function LogsTable({
         isCollapsed ? "hidden" : "block"
       )}>
         <div className="flex-1 overflow-auto">
-          <table className="w-full">
+          <table className="w-full text-[11px]">
             <TableHeader>
               <TableRow>
-                {["User", "Operation", "Time", "Duration", "Status", "Size"].map((header) => (
+                {headers.map((header) => (
                   <TableHead 
-                    key={header}
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => handleSort(header.toLowerCase() as keyof Log)}
+                    key={`header-${header.key}`}
+                    className="cursor-pointer hover:bg-gray-50 text-[11px] whitespace-nowrap"
+                    onClick={() => handleSort(header.key)}
                   >
-                    {header}
-                    {sortConfig.key === header.toLowerCase() && (
+                    {header.label}
+                    {sortConfig.key === header.key && (
                       <span className="ml-1">
                         {sortConfig.direction === "asc" ? "↑" : "↓"}
                       </span>
@@ -147,20 +202,22 @@ export function LogsTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {paginatedLogs.map((log) => (
-                <TableRow 
-                  key={log.id}
-                  className="cursor-pointer hover:bg-gray-100"
-                  onClick={() => onSelectLog(log)}
-                >
-                  <TableCell>{log.user}</TableCell>
-                  <TableCell>{log.operation}</TableCell>
-                  <TableCell>{log.time}</TableCell>
-                  <TableCell>{log.duration}</TableCell>
-                  <TableCell>{log.status}</TableCell>
-                  <TableCell>{log.size}</TableCell>
-                </TableRow>
-              ))}
+              {paginatedLogs
+                .filter(log => log && log.id)
+                .map((log) => (
+                  <TableRow 
+                    key={log.id}
+                    className="cursor-pointer hover:bg-gray-100"
+                    onClick={() => onSelectLog(log)}
+                  >
+                    <TableCell className="whitespace-nowrap">{log.user}</TableCell>
+                    <TableCell className="whitespace-nowrap">{log.operation}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDateTime(log.time)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{formatDuration(log.durationMilliseconds)}</TableCell>
+                    <TableCell className="whitespace-nowrap">{log.status}</TableCell>
+                    <TableCell className="whitespace-nowrap">{log.size}</TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </table>
         </div>

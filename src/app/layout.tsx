@@ -13,7 +13,20 @@ export const metadata: Metadata = {
   title: "toolkit",
   description: "Salesforce development tools",
   icons: {
-    icon: '/icon_128.ico',
+    icon: [
+      {
+        url: '/icon_128.ico',
+        sizes: '128x128',
+      },
+      {
+        url: '/icon_128.png',
+        sizes: '128x128',
+      }
+    ],
+    apple: {
+      url: '/icon_128.png',
+      sizes: '128x128',
+    },
   },
 };
 
