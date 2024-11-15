@@ -21,8 +21,8 @@ interface CollapsibleLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD';
-  isExpanded?: boolean;
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS';
+  isCollapsible?: boolean;
 }
 
 export function LogViewer({ content, isLoading = false }: LogViewerProps) {
@@ -55,8 +55,10 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
     }
     
     if (prettyMode) {
-      const formattedLines = formatLogs(lines)
-      setFilteredLines(formattedLines)
+      console.log('Formatting lines in pretty mode');
+      const formattedLines = formatLogs(lines);
+      console.log('Formatted lines:', formattedLines);
+      setFilteredLines(formattedLines);
     } else {
       setFilteredLines(lines.map((line, index) => ({
         id: `line_${index}`,
@@ -81,8 +83,12 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   };
 
   const renderLine = (line: CollapsibleLine) => {
+    console.log('Rendering line:', line);
+    
     if (!prettyMode || !line.isCollapsible) {
-      return <div className="py-1 pl-2">{line.summary}</div>;
+      return <div className={`py-1 pl-2 ${line.type === 'LIMITS' ? 'bg-[#E6E3FE]' : ''}`}>
+      {line.summary}
+    </div>;
     }
 
     const isExpanded = expandedLines.has(line.id);
