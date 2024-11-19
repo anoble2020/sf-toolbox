@@ -28,15 +28,18 @@ interface CollapsibleLine {
 }
 
 const renderSqlWithBoldKeywords = (text: string) => {
-  // Split by ** markers that were added by boldSqlKeywords
-  const parts = text.split('**');
+  // Split on markdown-style bold markers
+  const parts = text.split(/(\*\*.*?\*\*)/g);
   return parts.map((part, index) => {
-    // Even indices are regular text, odd indices are keywords
-    return index % 2 === 0 ? (
-      <span key={index}>{part}</span>
-    ) : (
-      <span key={index} className="font-bold">{part}</span>
-    );
+    if (part.startsWith('**') && part.endsWith('**')) {
+      // Remove the markers and render bold
+      return (
+        <span key={index} className="font-bold">
+          {part.slice(2, -2)}
+        </span>
+      );
+    }
+    return <span key={index}>{part}</span>;
   });
 };
 
@@ -176,29 +179,6 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
     setSelectedLineContent(newSelectedContent);
   };
 
-  const renderSqlWithBoldKeywords = (text: string) => {
-    const keywords = [
-      'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'LIMIT', 
-      'ORDER BY', 'GROUP BY', 'IN', 'LIKE', 'TYPEOF', 
-      'OFFSET', 'HAVING', 'INCLUDES', 'EXCLUDES', 'NOT'
-    ];
-    
-    let result = text;
-    keywords.forEach(keyword => {
-      const regex = new RegExp(`\\b${keyword}\\b`, 'g');
-      result = result.replace(regex, `**${keyword}**`);
-    });
-    
-    const parts = result.split('**');
-    return parts.map((part, index) => {
-      return index % 2 === 0 ? (
-        <span key={index}>{part}</span>
-      ) : (
-        <span key={index} className="font-bold">{part}</span>
-      );
-    });
-  };
-
   const renderLine = (line: CollapsibleLine) => {
     const isSelected = selectedLineContent?.id === `line_${line.originalIndex}`;
     
@@ -209,6 +189,13 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
       ${line.type !== 'LIMITS' ? 'cursor-pointer' : ''}
     `;
 
+    const renderContent = (content: string) => {
+      if (line.type === 'SOQL') {
+        return renderSqlWithBoldKeywords(content);
+      }
+      return content;
+    };
+
     if (!prettyMode || !line.isCollapsible) {
       return (
         <div 
@@ -217,11 +204,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
           ref={isSelected ? selectedLineRef : null}
         >
           <div className="px-2">
-            {line.type === 'SOQL' ? (
-              renderSqlWithBoldKeywords(line.summary)
-            ) : (
-              line.summary
-            )}
+            {renderContent(line.summary)}
           </div>
         </div>
       );
@@ -247,11 +230,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
               {isExpanded ? '▼' : '▶'}
             </span>
           )}
-          {line.type === 'SOQL' ? (
-            renderSqlWithBoldKeywords(line.summary)
-          ) : (
-            line.summary
-          )}
+          {renderContent(line.summary)}
         </div>
         {isExpanded && line.details && (
           <div className="pl-8 py-2 bg-gray-50 font-mono text-sm w-full whitespace-pre">

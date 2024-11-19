@@ -130,8 +130,7 @@ const SQL_KEYWORDS = [
 function boldSqlKeywords(sql: string): string {
   let result = sql;
   SQL_KEYWORDS.forEach(keyword => {
-    // Use regex to match whole words only
-    const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
     result = result.replace(regex, `**${keyword}**`);
   });
   return result;
@@ -147,7 +146,22 @@ export function formatLogs(lines: string[]): FormattedLine[] {
   const validLines = lines.map((line, index) => ({
     content: line.trim(),
     originalIndex: index
-  }));
+  })).filter(({ content }) => {
+    // Filter out empty lines and standalone zeros
+    if (!(content.match(/\d{2}:\d{2}:\d{2}/) || (content !== '0' && content !== ''))) {
+      return false;
+    }
+
+    // Filter out SYSTEM_MODE and SYSTEM_METHOD lines
+    if (content.includes('SYSTEM_MODE_ENTER') || 
+        content.includes('SYSTEM_MODE_EXIT') ||
+        content.includes('SYSTEM_METHOD_ENTER') ||
+        content.includes('SYSTEM_METHOD_EXIT')) {
+      return false;
+    }
+
+    return true;
+  });
 
   for (let i = 0; i < validLines.length; i++) {
     const { content, originalIndex } = validLines[i];
@@ -171,10 +185,12 @@ export function formatLogs(lines: string[]): FormattedLine[] {
       }
 
       const formattedLine = formatLogLine(content, originalIndex, lines);
+      const sqlQuery = soqlBeginMatch[1];
       formattedLines.push({
         ...formattedLine,
-        summary: boldSqlKeywords(formattedLine.summary) + rowCount,
+        summary: boldSqlKeywords(sqlQuery) + rowCount,
         type: 'SOQL',
+        isCollapsible: false,
         originalIndex
       });
       continue;
