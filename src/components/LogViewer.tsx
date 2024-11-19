@@ -43,6 +43,34 @@ const renderSqlWithBoldKeywords = (text: string) => {
   });
 };
 
+const renderSoqlLine = (content: string) => {
+  const parts = content.split(' | ');
+  return (
+    <div className="flex items-center gap-2">
+      {/* Time */}
+      <span className="text-gray-600">{parts[0]}</span>
+      
+      {/* Search icon with background */}
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#484b6a]">
+        <Search className="w-4 h-4 text-white" />
+      </div>
+      
+      {/* Line number */}
+      <span>{parts[1]}</span>
+      
+      {/* SOQL statement with bold keywords */}
+      <span className="flex-1">
+        {renderSqlWithBoldKeywords(parts[2])}
+      </span>
+      
+      {/* Aggregations/Rows info if present */}
+      {parts.length > 3 && (
+        <span className="text-gray-600">{parts.slice(3).join(' | ')}</span>
+      )}
+    </div>
+  );
+};
+
 export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredLines, setFilteredLines] = useState<CollapsibleLine[]>([])
@@ -191,7 +219,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
 
     const renderContent = (content: string) => {
       if (line.type === 'SOQL') {
-        return renderSqlWithBoldKeywords(content);
+        return renderSoqlLine(content);
       }
       return content;
     };

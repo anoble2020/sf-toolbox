@@ -173,22 +173,32 @@ export function formatLogs(lines: string[]): FormattedLine[] {
     }
 
     // Handle SOQL execution pairs
-    const soqlBeginMatch = content.match(/\|SOQL_EXECUTE_BEGIN\|(\[\d+\].*)/);
+    const soqlBeginMatch = content.match(/\|SOQL_EXECUTE_BEGIN\|(\[(\d+)\])(.*)/);
     if (soqlBeginMatch) {
       let rowCount = '';
+      let aggregations = '';
+      
+      // Extract line number and any aggregations info
+      const [_, bracketsFull, lineNumber, restOfQuery] = soqlBeginMatch;
+      const aggregationsMatch = restOfQuery.match(/\|Aggregations:(\d+)\|/);
+      if (aggregationsMatch) {
+        aggregations = ` | Aggregations: ${aggregationsMatch[1]}`;
+      }
+      
       if (nextLine && nextLine.includes('SOQL_EXECUTE_END')) {
         const rowMatch = nextLine.match(/\|Rows:(\d+)/);
         if (rowMatch) {
-          rowCount = ` (Rows: ${rowMatch[1]})`;
+          rowCount = ` | Rows: ${rowMatch[1]}`;
           i++; // Skip the END line
         }
       }
 
       const formattedLine = formatLogLine(content, originalIndex, lines);
-      const sqlQuery = soqlBeginMatch[1];
+      const sqlQuery = restOfQuery.replace(/\|Aggregations:\d+\|/, '').trim();
+      
       formattedLines.push({
         ...formattedLine,
-        summary: boldSqlKeywords(sqlQuery) + rowCount,
+        summary: `${formattedLine.time} | [${lineNumber}] | ${boldSqlKeywords(sqlQuery)}${aggregations}${rowCount}`,
         type: 'SOQL',
         isCollapsible: false,
         originalIndex
