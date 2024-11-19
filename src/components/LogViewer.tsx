@@ -160,7 +160,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
       // Then filter the formatted lines based on our criteria
       let filteredFormatted = formattedLines;
       if (debugOnly) {
-        filteredFormatted = formattedLines.filter(line => line.summary.includes("Debug"));
+        filteredFormatted = formattedLines.filter(line => line.summary.includes("DEBUG"));
       }
       if (searchQuery) {
         filteredFormatted = filteredFormatted.filter(line => 
