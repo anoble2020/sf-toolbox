@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
-import { Search, LineChart } from "lucide-react"
+import { Search, LineChart, Bug } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -67,6 +67,27 @@ const renderSoqlLine = (content: string) => {
       {parts.length > 3 && (
         <span className="text-gray-600">{parts.slice(3).join(' | ')}</span>
       )}
+    </div>
+  );
+};
+
+const renderDebugLine = (content: string) => {
+  const parts = content.split(' | ');
+  return (
+    <div className="flex items-center gap-2">
+      {/* Time */}
+      <span className="text-gray-600">{parts[0]}</span>
+      
+      {/* Bug icon with background */}
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffa343]">
+        <Bug className="w-4 h-4 text-white" />
+      </div>
+      
+      {/* Debug line number and message */}
+      <span>{parts[1]}</span>
+      
+      {/* Debug message */}
+      <span className="flex-1">{parts[2]}</span>
     </div>
   );
 };
@@ -220,6 +241,10 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
     const renderContent = (content: string) => {
       if (line.type === 'SOQL') {
         return renderSoqlLine(content);
+      }
+      // Check if this is a debug line by looking for the "Debug" keyword
+      if (content.includes(' | DEBUG [')) {
+        return renderDebugLine(content);
       }
       return content;
     };

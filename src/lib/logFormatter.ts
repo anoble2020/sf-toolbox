@@ -74,13 +74,12 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
     if (debugMatch) {
       const [_, lineNum, level, message] = debugMatch;
       const { formatted, isJson, preview } = tryFormatJson(message);
-      const emoji = level === 'ERROR' ? '❌' : level === 'WARN' ? '⚠️' : '🪲';
       
       if (isJson) {
         return {
           id: baseId,
           time,
-          summary: `${emoji} Debug [${lineNum}]: {${preview}}`,
+          summary: `${time} | DEBUG [${lineNum}] | {${preview}}`,
           details: formatted,
           type: 'JSON',
           isCollapsible: true,
@@ -92,7 +91,7 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
         return {
           id: baseId,
           time,
-          summary: `${emoji} Debug [${lineNum}]: ${message.substring(0, 200)}...`,
+          summary: `${time} | DEBUG [${lineNum}] | ${message.substring(0, 200)}...`,
           details: message,
           type: 'STANDARD',
           isCollapsible: true,
@@ -103,7 +102,7 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
       return {
         id: baseId,
         time,
-        summary: `${emoji} Debug [${lineNum}]: ${message}`,
+        summary: `${time} | DEBUG [${lineNum}] | ${message}`,
         type: 'STANDARD',
         isCollapsible: false,
         originalIndex
