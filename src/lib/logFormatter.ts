@@ -13,7 +13,7 @@ interface FormattedLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW';
   isCollapsible?: boolean;
   suffix?: string;
   nestLevel?: number;
@@ -81,7 +81,7 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
           time,
           summary: `${time} | DEBUG [${lineNum}] | {${preview}}`,
           details: formatted,
-          type: 'JSON',
+          type: 'DEBUG',
           isCollapsible: true,
           originalIndex
         };
@@ -93,7 +93,7 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
           time,
           summary: `${time} | DEBUG [${lineNum}] | ${message.substring(0, 200)}...`,
           details: message,
-          type: 'STANDARD',
+          type: 'DEBUG',
           isCollapsible: true,
           originalIndex
         };
@@ -103,7 +103,65 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
         id: baseId,
         time,
         summary: `${time} | DEBUG [${lineNum}] | ${message}`,
-        type: 'STANDARD',
+        type: 'DEBUG',
+        isCollapsible: false,
+        originalIndex
+      };
+    }
+  }
+
+  if (cleanLine.includes('CODE_UNIT_')) {
+    // Skip TRIGGERS line
+    if (cleanLine.includes('|TRIGGERS') || cleanLine.includes('|Flow:')) {
+      return null;
+    }
+
+    const isStart = cleanLine.includes('CODE_UNIT_STARTED');
+    let triggerName, eventType;
+
+    // Debug log to see what we're trying to match
+    console.log('Attempting to match CODE_UNIT line:', cleanLine);
+
+    if (isStart) {
+      // Updated trigger pattern to be more precise
+      const startMatch = cleanLine.match(/CODE_UNIT_STARTED\|\[EXTERNAL\]\|[^|]+\|([^|]+?)(?= on \w+ trigger event ).*?trigger event ([^|]+)/);
+      if (startMatch) {
+        console.log('Matched START:', startMatch);
+        const [, trigger, event] = startMatch;
+        triggerName = trigger;
+        eventType = event;
+      }
+    } else {
+      const finishMatch = cleanLine.match(/CODE_UNIT_FINISHED\|([^|]+?)(?= on \w+ trigger event ).*?trigger event ([^|]+)/);
+      if (finishMatch) {
+        const [, trigger, event] = finishMatch;
+        triggerName = trigger;
+        eventType = event;
+      }
+    }
+
+    if (triggerName && eventType) {
+      return {
+        id: baseId,
+        time,
+        summary: `${time} | ${isStart ? 'TRIGGER START' : 'TRIGGER FINISH'} | ${triggerName} | ${eventType}`,
+        type: 'CODE_UNIT',
+        isCollapsible: false,
+        originalIndex
+      };
+    }
+  } else if (cleanLine.includes('FLOW_')) {
+    // Handle Flow start/finish lines
+    const isStart = cleanLine.includes('FLOW_START_INTERVIEW_BEGIN');
+    const flowMatch = cleanLine.match(/FLOW_(?:START_INTERVIEW_BEGIN|INTERVIEW_FINISHED)\|[^|]+\|([^|]+)/);
+    
+    if (flowMatch) {
+      const [, flowName] = flowMatch;
+      return {
+        id: baseId,
+        time,
+        summary: `${time} | ${isStart ? 'FLOW START' : 'FLOW FINISH'} | ${flowName}`,
+        type: 'FLOW',
         isCollapsible: false,
         originalIndex
       };
@@ -151,7 +209,7 @@ export function formatLogs(lines: string[]): FormattedLine[] {
       return false;
     }
 
-    // Filter out SYSTEM_MODE and SYSTEM_METHOD lines
+    // Filter out SYSTEM_MODE, SYSTEM_METHOD, and CUMULATIVE_LIMIT_USAGE lines
     if (content.includes('SYSTEM_MODE_ENTER') || 
         content.includes('SYSTEM_MODE_EXIT') ||
         content.includes('SYSTEM_METHOD_ENTER') ||
@@ -210,6 +268,12 @@ export function formatLogs(lines: string[]): FormattedLine[] {
       continue;
     }
 
+        // Handle limits collection
+        if (content.includes('CUMULATIVE_LIMIT_USAGE') && !content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
+            collectingLimits = true;   
+            continue;
+        }
+
     // Handle regular lines
     if (!collectingLimits) {
       const formattedLine = formatLogLine(content, originalIndex, lines);
@@ -220,12 +284,6 @@ export function formatLogs(lines: string[]): FormattedLine[] {
           originalIndex
         });
       }
-    }
-
-    // Handle limits collection
-    if (content.includes('CUMULATIVE_LIMIT_USAGE') && !content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
-      collectingLimits = true;
-      continue;
     }
 
     if (content.includes('CUMULATIVE_LIMIT_USAGE_END')) {

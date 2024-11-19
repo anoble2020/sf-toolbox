@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
-import { Search, LineChart, Bug } from "lucide-react"
+import { Search, LineChart, Bug, Code, Workflow } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -21,7 +21,7 @@ interface CollapsibleLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DEBUG';
   isCollapsible?: boolean;
   nestLevel?: number;
   isSelected?: boolean;
@@ -44,52 +44,88 @@ const renderSqlWithBoldKeywords = (text: string) => {
 };
 
 const renderSoqlLine = (content: string) => {
-  const parts = content.split(' | ');
+  // Split content into main parts
+  const [timestamp, ...rest] = content.split(' | ');
+  const mainContent = rest.join(' | ');
+  
+  // Extract aggregations and rows if they exist
+  const statsMatch = mainContent.match(/\| (Aggregations: \d+ \| Rows: \d+)$/);
+  const stats = statsMatch ? statsMatch[1] : '';
+  const query = statsMatch ? mainContent.replace(statsMatch[0], '') : mainContent;
+
   return (
-    <div className="flex items-center gap-2">
-      {/* Time */}
-      <span className="text-gray-600">{parts[0]}</span>
+    <div className="flex items-center gap-2 w-full">
+      {/* Timestamp */}
+      <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
       
       {/* Search icon with background */}
       <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#484b6a]">
         <Search className="w-4 h-4 text-white" />
       </div>
       
-      {/* Line number */}
-      <span>{parts[1]}</span>
-      
-      {/* SOQL statement with bold keywords */}
+      {/* Query content */}
       <span className="flex-1">
-        {renderSqlWithBoldKeywords(parts[2])}
+        {renderSqlWithBoldKeywords(query)}
       </span>
       
-      {/* Aggregations/Rows info if present */}
-      {parts.length > 3 && (
-        <span className="text-gray-600">{parts.slice(3).join(' | ')}</span>
-      )}
+      {/* Stats on the right */}
+      {stats && <span className="text-gray-600 whitespace-nowrap">{stats}</span>}
+    </div>
+  );
+};
+
+const renderFlowLine = (content: string) => {
+  const [timestamp, ...rest] = content.split(' | ');
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#3a49ee]">
+        <Workflow className="w-4 h-4 text-white" />
+      </div>
+      <span>{rest.join(' | ')}</span>
+    </div>
+  );
+};
+
+const renderCodeUnitLine = (content: string) => {
+  const [timestamp, ...rest] = content.split(' | ');
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#94e591]">
+        <Code className="w-4 h-4 text-white" />
+      </div>
+      <span>{rest.join(' | ')}</span>
     </div>
   );
 };
 
 const renderDebugLine = (content: string) => {
-  const parts = content.split(' | ');
+  const [timestamp, ...rest] = content.split(' | ');
   return (
     <div className="flex items-center gap-2">
-      {/* Time */}
-      <span className="text-gray-600">{parts[0]}</span>
-      
-      {/* Bug icon with background */}
-      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ffa343]">
+      <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#f1ad48]">
         <Bug className="w-4 h-4 text-white" />
       </div>
-      
-      {/* Debug line number and message */}
-      <span>{parts[1]}</span>
-      
-      {/* Debug message */}
-      <span className="flex-1">{parts[2]}</span>
+      <span>{rest.join(' | ')}</span>
     </div>
   );
+};
+
+const renderContent = (line: CollapsibleLine) => {
+  switch (line.type) {
+    case 'SOQL':
+      return renderSoqlLine(line.summary);
+    case 'FLOW':
+      return renderFlowLine(line.summary);
+    case 'CODE_UNIT':
+      return renderCodeUnitLine(line.summary);
+    case 'DEBUG':
+      return renderDebugLine(line.summary);
+    default:
+      return <span>{line.summary}</span>;
+  }
 };
 
 export function LogViewer({ content, isLoading = false }: LogViewerProps) {
@@ -238,17 +274,6 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
       ${line.type !== 'LIMITS' ? 'cursor-pointer' : ''}
     `;
 
-    const renderContent = (content: string) => {
-      if (line.type === 'SOQL') {
-        return renderSoqlLine(content);
-      }
-      // Check if this is a debug line by looking for the "Debug" keyword
-      if (content.includes(' | DEBUG [')) {
-        return renderDebugLine(content);
-      }
-      return content;
-    };
-
     if (!prettyMode || !line.isCollapsible) {
       return (
         <div 
@@ -257,7 +282,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
           ref={isSelected ? selectedLineRef : null}
         >
           <div className="px-2">
-            {renderContent(line.summary)}
+            {renderContent(line)}
           </div>
         </div>
       );
@@ -272,18 +297,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
         ref={isSelected ? selectedLineRef : null}
       >
         <div className="flex items-center gap-2 px-2">
-          {line.isCollapsible && (
-            <span 
-              className="text-gray-500"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleLineClick(line, true);
-              }}
-            >
-              {isExpanded ? '▼' : '▶'}
-            </span>
-          )}
-          {renderContent(line.summary)}
+          {renderContent(line)}
         </div>
         {isExpanded && line.details && (
           <div className="pl-8 py-2 bg-gray-50 font-mono text-sm w-full whitespace-pre">
