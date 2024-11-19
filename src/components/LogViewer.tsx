@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
 import { Search, LineChart } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -21,9 +21,24 @@ interface CollapsibleLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT';
   isCollapsible?: boolean;
+  nestLevel?: number;
+  isSelected?: boolean;
 }
+
+const renderSqlWithBoldKeywords = (text: string) => {
+  // Split by ** markers that were added by boldSqlKeywords
+  const parts = text.split('**');
+  return parts.map((part, index) => {
+    // Even indices are regular text, odd indices are keywords
+    return index % 2 === 0 ? (
+      <span key={index}>{part}</span>
+    ) : (
+      <span key={index} className="font-bold">{part}</span>
+    );
+  });
+};
 
 export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   const [searchQuery, setSearchQuery] = useState("")
@@ -35,40 +50,87 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   const [showAllLogs, setShowAllLogs] = useState(false)
   const [prettyMode, setPrettyMode] = useState(false)
   const [expandedLines, setExpandedLines] = useState<Set<string>>(new Set());
+  const [selectedLineContent, setSelectedLineContent] = useState<{
+    pretty: string | null;
+    raw: string | null;
+  }>({ pretty: null, raw: null });
+  const selectedLineRef = useRef<HTMLDivElement>(null);
+  const [originalLineIndices, setOriginalLineIndices] = useState<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    if (selectedLineContent && selectedLineRef.current) {
+      selectedLineRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedLineContent, filteredLines]);
+
+  // When content changes, create a mapping of line content to original indices
+  useEffect(() => {
+    if (!content) return;
+    const newMap = new Map();
+    content.split("\n").forEach((line, index) => {
+      newMap.set(line, index);
+    });
+    setOriginalLineIndices(newMap);
+  }, [content]);
 
   useEffect(() => {
     if (!content) {
-      setFilteredLines([])
-      return
+      setFilteredLines([]);
+      return;
     }
+
+    const allLines = content.split("\n");
     
-    let lines = content.split("\n")
-    
+    // Create a mapping of line content to original indices
+    const lineToIndexMap = new Map<string, number>();
+    allLines.forEach((line, index) => {
+      lineToIndexMap.set(line, index);
+    });
+
+    let processedLines = allLines.map((line, index) => ({
+      line,
+      originalIndex: index
+    }));
+
     if (debugOnly) {
-      lines = lines.filter(line => line.includes("USER_DEBUG"))
+      processedLines = processedLines.filter(({ line }) => line.includes("USER_DEBUG"));
     }
-    
+
     if (searchQuery) {
-      lines = lines.filter(line => 
+      processedLines = processedLines.filter(({ line }) => 
         line.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+      );
     }
-    
+
     if (prettyMode) {
-      console.log('Formatting lines in pretty mode');
-      const formattedLines = formatLogs(lines);
-      console.log('Formatted lines:', formattedLines);
-      setFilteredLines(formattedLines);
+      // Pass the original lines array to formatLogs, not just the filtered lines
+      const formattedLines = formatLogs(allLines);
+      // Then filter the formatted lines based on our criteria
+      let filteredFormatted = formattedLines;
+      if (debugOnly) {
+        filteredFormatted = formattedLines.filter(line => line.summary.includes("Debug"));
+      }
+      if (searchQuery) {
+        filteredFormatted = filteredFormatted.filter(line => 
+          line.summary.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      }
+      setFilteredLines(filteredFormatted.map(line => ({
+        ...line,
+        isSelected: selectedLineContent?.id === `line_${line.originalIndex}`
+      })));
     } else {
-      setFilteredLines(lines.map((line, index) => ({
-        id: `line_${index}`,
+      setFilteredLines(processedLines.map(({ line, originalIndex }) => ({
+        id: `line_${originalIndex}`,
         time: '',
         summary: line,
         type: 'STANDARD',
-        isCollapsible: false
-      })))
+        isCollapsible: false,
+        originalIndex,
+        isSelected: selectedLineContent?.id === `line_${originalIndex}`
+      })));
     }
-  }, [content, searchQuery, debugOnly, prettyMode])
+  }, [content, searchQuery, debugOnly, prettyMode, selectedLineContent]);
 
   const toggleLine = (lineId: string) => {
     setExpandedLines(prev => {
@@ -82,30 +144,117 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
     });
   };
 
-  const renderLine = (line: CollapsibleLine) => {
-    console.log('Rendering line:', line);
+  const handleLineClick = (line: CollapsibleLine, isExpandToggle: boolean = false) => {
+    if (isExpandToggle) {
+      toggleLine(line.id);
+      return;
+    }
+
+    // Debug logging
+    console.log('Clicked line details:', {
+      id: line.id,
+      originalIndex: line.originalIndex,
+      currentSelectedId: selectedLineContent?.id
+    });
+
+    // Handle deselection
+    if (selectedLineContent?.id === `line_${line.originalIndex}`) {
+      setSelectedLineContent({ id: '', raw: null, pretty: null });
+      return;
+    }
+
+    // Get raw line using the original index
+    const rawLine = content?.split('\n')[line.originalIndex];
+
+    const newSelectedContent = {
+      id: `line_${line.originalIndex}`,
+      raw: rawLine || null,
+      pretty: prettyMode ? `${line.time}|${line.summary}` : null
+    };
+
+    console.log('Setting selected line content:', newSelectedContent);
+    setSelectedLineContent(newSelectedContent);
+  };
+
+  const renderSqlWithBoldKeywords = (text: string) => {
+    const keywords = [
+      'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'LIMIT', 
+      'ORDER BY', 'GROUP BY', 'IN', 'LIKE', 'TYPEOF', 
+      'OFFSET', 'HAVING', 'INCLUDES', 'EXCLUDES', 'NOT'
+    ];
     
+    let result = text;
+    keywords.forEach(keyword => {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+      result = result.replace(regex, `**${keyword}**`);
+    });
+    
+    const parts = result.split('**');
+    return parts.map((part, index) => {
+      return index % 2 === 0 ? (
+        <span key={index}>{part}</span>
+      ) : (
+        <span key={index} className="font-bold">{part}</span>
+      );
+    });
+  };
+
+  const renderLine = (line: CollapsibleLine) => {
+    const isSelected = selectedLineContent?.id === `line_${line.originalIndex}`;
+    
+    const baseClasses = `
+      py-1
+      ${line.type === 'LIMITS' ? 'bg-[#DADADA] hover:bg-[#C0C0C0]' : ''}
+      ${isSelected ? 'bg-blue-100 hover:bg-blue-200' : 'hover:bg-gray-50'}
+      ${line.type !== 'LIMITS' ? 'cursor-pointer' : ''}
+    `;
+
     if (!prettyMode || !line.isCollapsible) {
-      return <div className={`py-1 pl-2 ${line.type === 'LIMITS' ? 'bg-[#E6E3FE]' : ''}`}>
-      {line.summary}
-    </div>;
+      return (
+        <div 
+          className={baseClasses}
+          onClick={() => line.type !== 'LIMITS' && handleLineClick(line)}
+          ref={isSelected ? selectedLineRef : null}
+        >
+          <div className="px-2">
+            {line.type === 'SOQL' ? (
+              renderSqlWithBoldKeywords(line.summary)
+            ) : (
+              line.summary
+            )}
+          </div>
+        </div>
+      );
     }
 
     const isExpanded = expandedLines.has(line.id);
     
     return (
       <div 
-        className="cursor-pointer hover:bg-gray-50 py-1"
-        onClick={() => toggleLine(line.id)}
+        className={baseClasses}
+        onClick={() => line.type !== 'LIMITS' && handleLineClick(line)}
+        ref={isSelected ? selectedLineRef : null}
       >
-        <div className="pl-2 flex items-center gap-2">
-          <span className="text-gray-500">
-            {isExpanded ? '▼' : '▶'}
-          </span>
-          {line.summary}
+        <div className="flex items-center gap-2 px-2">
+          {line.isCollapsible && (
+            <span 
+              className="text-gray-500"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLineClick(line, true);
+              }}
+            >
+              {isExpanded ? '▼' : '▶'}
+            </span>
+          )}
+          {line.type === 'SOQL' ? (
+            renderSqlWithBoldKeywords(line.summary)
+          ) : (
+            line.summary
+          )}
         </div>
         {isExpanded && line.details && (
-          <div className="pl-8 py-2 bg-gray-50 font-mono text-sm">
+          <div className="pl-8 py-2 bg-gray-50 font-mono text-sm w-full whitespace-pre">
             {line.details}
           </div>
         )}
@@ -114,7 +263,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col ml-1">
       <div className="flex-none bg-white border-b border-gray-200 p-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

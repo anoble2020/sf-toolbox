@@ -13,9 +13,14 @@ interface FormattedLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT';
   isCollapsible?: boolean;
   suffix?: string;
+  nestLevel?: number;
+  unitId?: string;
+  isUnitStart?: boolean;
+  isUnitEnd?: boolean;
+  originalIndex?: number;
 }
 
 function tryFormatJson(str: string): { formatted: string; isJson: boolean; preview: string } {
@@ -27,9 +32,8 @@ function tryFormatJson(str: string): { formatted: string; isJson: boolean; previ
     const parsed = JSON.parse(jsonStr);
     const formatted = JSON.stringify(parsed, null, 2);
     
-    // Create preview by taking first 2-3 key-value pairs
     const preview = JSON.stringify(parsed)
-      .replace(/^\{|\}$/g, '') // Remove outer braces
+      .replace(/^\{|\}$/g, '')
       .split(',')
       .slice(0, 2)
       .join(', ') + (Object.keys(parsed).length > 2 ? ' ...' : '');
@@ -44,50 +48,93 @@ function tryFormatJson(str: string): { formatted: string; isJson: boolean; previ
   }
 }
 
-export function formatLogLine(line: string, index: number, allLines: string[]): FormattedLine {
-  const baseId = `line_${index}_${Date.now()}`; // Make IDs unique
+export function formatLogLine(line: string, originalIndex: number, allLines: string[]): FormattedLine {
+  const baseId = `line_${originalIndex}`;
   
-  // Extract timestamp without the number in parentheses
   const timeMatch = line.match(/(\d{2}:\d{2}:\d{2})\.(\d+)\s*\(\d+\)\|/);
   if (!timeMatch) {
     return {
       id: baseId,
       time: '',
       summary: line,
-      type: 'STANDARD'
+      type: 'STANDARD',
+      originalIndex
     };
   }
 
   const [fullMatch, time] = timeMatch;
   let cleanLine = line.replace(fullMatch, `${time}|`);
 
-  // Format USER_DEBUG with JSON detection
+  if (!cleanLine.includes('USER_DEBUG')) {
+    cleanLine = cleanLine.replace(/\[EXTERNAL\]\|/, '');
+  }
+
   if (cleanLine.includes('USER_DEBUG')) {
     const debugMatch = cleanLine.match(/USER_DEBUG\|\[(\d+)\]\|(DEBUG|INFO|WARN|ERROR)\|(.*)/);
     if (debugMatch) {
       const [_, lineNum, level, message] = debugMatch;
       const { formatted, isJson, preview } = tryFormatJson(message);
-      const emoji = level === 'ERROR' ? '❌' : level === 'WARN' ? '⚠️' : '🔍';
+      const emoji = level === 'ERROR' ? '❌' : level === 'WARN' ? '⚠️' : '🪲';
+      
+      if (isJson) {
+        return {
+          id: baseId,
+          time,
+          summary: `${emoji} Debug [${lineNum}]: {${preview}}`,
+          details: formatted,
+          type: 'JSON',
+          isCollapsible: true,
+          originalIndex
+        };
+      }
+      
+      if (message.length > 200) {
+        return {
+          id: baseId,
+          time,
+          summary: `${emoji} Debug [${lineNum}]: ${message.substring(0, 200)}...`,
+          details: message,
+          type: 'STANDARD',
+          isCollapsible: true,
+          originalIndex
+        };
+      }
       
       return {
         id: baseId,
         time,
-        summary: `${emoji} Debug [${lineNum}]${isJson ? `: {${preview}}` : `: ${message}`}`,
-        details: isJson ? formatted : undefined,
-        type: isJson ? 'JSON' : 'STANDARD',
-        isCollapsible: isJson
+        summary: `${emoji} Debug [${lineNum}]: ${message}`,
+        type: 'STANDARD',
+        isCollapsible: false,
+        originalIndex
       };
     }
   }
 
-  // Don't return null for CUMULATIVE_LIMIT_USAGE anymore
-  // Instead, let it pass through to be handled by formatLimitUsage
   return {
     id: baseId,
     time,
     summary: cleanLine,
-    type: 'STANDARD'
+    type: 'STANDARD',
+    originalIndex
   };
+}
+
+// Add SQL keywords to be bolded
+const SQL_KEYWORDS = [
+  'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'LIMIT', 
+  'ORDER BY', 'GROUP BY', 'IN', 'LIKE', 'TYPEOF', 
+  'OFFSET', 'HAVING', 'INCLUDES', 'EXCLUDES', 'NOT'
+];
+
+function boldSqlKeywords(sql: string): string {
+  let result = sql;
+  SQL_KEYWORDS.forEach(keyword => {
+    // Use regex to match whole words only
+    const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+    result = result.replace(regex, `**${keyword}**`);
+  });
+  return result;
 }
 
 export function formatLogs(lines: string[]): FormattedLine[] {
@@ -96,53 +143,92 @@ export function formatLogs(lines: string[]): FormattedLine[] {
   let limitData: { [key: string]: { used: number; total: number } } = {};
   let currentTime = '';
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    console.log('Processing line:', line);
+  // First pass: create array with original indices
+  const validLines = lines.map((line, index) => ({
+    content: line.trim(),
+    originalIndex: index
+  }));
+
+  for (let i = 0; i < validLines.length; i++) {
+    const { content, originalIndex } = validLines[i];
+    const nextLine = i < validLines.length - 1 ? validLines[i + 1].content : '';
     
-    // Extract timestamp for all lines
-    const timeMatch = line.match(/(\d{2}:\d{2}:\d{2})/);
+    const timeMatch = content.match(/(\d{2}:\d{2}:\d{2})/);
     if (timeMatch) {
       currentTime = timeMatch[1];
     }
 
-    // Handle cumulative usage sections - use exact matches
-    if (line.includes('CUMULATIVE_LIMIT_USAGE') && !line.includes('CUMULATIVE_LIMIT_USAGE_END')) {
+    // Handle SOQL execution pairs
+    const soqlBeginMatch = content.match(/\|SOQL_EXECUTE_BEGIN\|(\[\d+\].*)/);
+    if (soqlBeginMatch) {
+      let rowCount = '';
+      if (nextLine && nextLine.includes('SOQL_EXECUTE_END')) {
+        const rowMatch = nextLine.match(/\|Rows:(\d+)/);
+        if (rowMatch) {
+          rowCount = ` (Rows: ${rowMatch[1]})`;
+          i++; // Skip the END line
+        }
+      }
+
+      const formattedLine = formatLogLine(content, originalIndex, lines);
+      formattedLines.push({
+        ...formattedLine,
+        summary: boldSqlKeywords(formattedLine.summary) + rowCount,
+        type: 'SOQL',
+        originalIndex
+      });
+      continue;
+    }
+
+    // Skip SOQL_EXECUTE_END lines as they're handled above
+    if (content.includes('SOQL_EXECUTE_END')) {
+      continue;
+    }
+
+    // Handle regular lines
+    if (!collectingLimits) {
+      const formattedLine = formatLogLine(content, originalIndex, lines);
+      if (formattedLine) {
+        formattedLines.push({
+          ...formattedLine,
+          type: formattedLine.type,
+          originalIndex
+        });
+      }
+    }
+
+    // Handle limits collection
+    if (content.includes('CUMULATIVE_LIMIT_USAGE') && !content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
       collectingLimits = true;
       continue;
     }
 
-    if (line.includes('CUMULATIVE_LIMIT_USAGE_END')) {
+    if (content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
       const metrics = [];
-      console.log('Collected limits:', limitData);
-
       metrics.push('Limits');
       
-      // SOQL metrics - only include if there are actual queries or rows
       if (limitData['Number of SOQL queries']?.used > 0 || limitData['Number of query rows']?.used > 0) {
         metrics.push(`🔍 SOQL: ${limitData['Number of SOQL queries'].used}/${limitData['Number of SOQL queries'].total} Queries, ${limitData['Number of query rows'].used}/${limitData['Number of query rows'].total} Rows`);
       }
       
-      // DML metrics - only include if there are actual statements or rows
       if (limitData['Number of DML statements']?.used > 0 || limitData['Number of DML rows']?.used > 0) {
         metrics.push(`🔶 DML: ${limitData['Number of DML statements'].used}/${limitData['Number of DML statements'].total} Statements, ${limitData['Number of DML rows'].used}/${limitData['Number of DML rows'].total} Rows`);
       }
       
-      // CPU and Heap - only include if CPU time was used
       if (limitData['Maximum CPU time']?.used > 0) {
         const heapUsedKB = Math.round(limitData['Maximum heap size'].used / 1024);
         const heapTotalKB = Math.round(limitData['Maximum heap size'].total / 1024);
         metrics.push(`💻 CPU: ${limitData['Maximum CPU time'].used}ms, Heap: ${heapUsedKB}/${heapTotalKB}KB`);
       }
 
-      // Only create and add the formatted line if we have non-zero metrics
       if (metrics.length > 0) {
         formattedLines.push({
-          id: `limit_${i}_${Date.now()}`,
+          id: `line_${originalIndex}`,
           time: currentTime,
           summary: metrics.join(' | '),
           type: 'LIMITS',
-          isCollapsible: false
+          isCollapsible: false,
+          originalIndex
         });
       }
       
@@ -152,8 +238,7 @@ export function formatLogs(lines: string[]): FormattedLine[] {
     }
 
     if (collectingLimits) {
-      // Parse limit data - adjust regex to handle lines without timestamps
-      const metricMatch = line.match(/^(.*?):\s*(\d+)\s*out of\s*(\d+)/);
+      const metricMatch = content.match(/^(.*?):\s*(\d+)\s*out of\s*(\d+)/);
       if (metricMatch) {
         const [_, name, used, total] = metricMatch;
         limitData[name.trim()] = {
@@ -161,13 +246,6 @@ export function formatLogs(lines: string[]): FormattedLine[] {
           total: parseInt(total)
         };
       }
-      continue;
-    }
-
-    // Handle regular lines through formatLogLine
-    const formattedLine = formatLogLine(line, i, lines);
-    if (formattedLine) {
-      formattedLines.push(formattedLine);
     }
   }
 
