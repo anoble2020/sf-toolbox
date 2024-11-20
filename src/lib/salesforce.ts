@@ -154,7 +154,7 @@ export const getLogBody = async (logId: string): Promise<string> => {
   return response.text()
 }
 
-export const createTraceFlag = async (userId: string): Promise<void> => {
+export const createTraceFlag = async (userId: string, debugLevelId: string, logType: string): Promise<void> => {
   const refreshToken = localStorage.getItem('sf_refresh_token')
   if (!refreshToken) {
     throw new Error('No refresh token found')
@@ -163,44 +163,46 @@ export const createTraceFlag = async (userId: string): Promise<void> => {
   try {
     const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
-    // First, get the SFDC_DevConsole debug level ID using Tooling API
-    const debugLevelResponse = await fetch(
-      `/api/salesforce/tooling/query?q=${encodeURIComponent(
-        "SELECT Id FROM DebugLevel WHERE DeveloperName = 'SFDC_DevConsole'"
-      )}&instance_url=${encodeURIComponent(instance_url)}`,
-      {
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      }
-    )
+    if(!debugLevelId) {
+        // First, get the SFDC_DevConsole debug level ID using Tooling API
+        const debugLevelResponse = await fetch(
+        `/api/salesforce/tooling/query?q=${encodeURIComponent(
+            "SELECT Id FROM DebugLevel WHERE DeveloperName = 'SFDC_DevConsole'"
+        )}&instance_url=${encodeURIComponent(instance_url)}`,
+        {
+            headers: {
+            Authorization: `Bearer ${access_token}`,
+            },
+        }
+        )
 
-    console.log('Debug level response:', debugLevelResponse)
+        console.log('Debug level response:', debugLevelResponse)
 
-    if (!debugLevelResponse.ok) {
-      const errorData = await debugLevelResponse.json()
-      console.error('Debug level fetch failed:', {
-        status: debugLevelResponse.status,
-        statusText: debugLevelResponse.statusText,
-        error: errorData
-      })
-      throw new Error(`Failed to fetch debug level: ${debugLevelResponse.statusText}`)
+        if (!debugLevelResponse.ok) {
+        const errorData = await debugLevelResponse.json()
+        console.error('Debug level fetch failed:', {
+            status: debugLevelResponse.status,
+            statusText: debugLevelResponse.statusText,
+            error: errorData
+        })
+        throw new Error(`Failed to fetch debug level: ${debugLevelResponse.statusText}`)
+        }
+
+        const debugLevelData = await debugLevelResponse.json()
+        if (!debugLevelData.records?.[0]?.Id) {
+        throw new Error('Debug level not found')
+        }
+
+        const debugLevelId = debugLevelData.records[0].Id
+        console.log('Debug level ID:', debugLevelId)
     }
-
-    const debugLevelData = await debugLevelResponse.json()
-    if (!debugLevelData.records?.[0]?.Id) {
-      throw new Error('Debug level not found')
-    }
-
-    const debugLevelId = debugLevelData.records[0].Id
-    console.log('Debug level ID:', debugLevelId)
 
     // Calculate dates for the trace flag
     const now = new Date()
     const expiration = new Date(now.getTime() + 24 * 60 * 60 * 1000) // 24 hours from now
 
     const requestBody = {
-        LogType: 'DEVELOPER_LOG',
+        LogType: logType ? logType : 'DEVELOPER_LOG',
         StartDate: now.toISOString(),
         ExpirationDate: expiration.toISOString(),
         DebugLevelId: debugLevelId,
@@ -238,6 +240,222 @@ export const createTraceFlag = async (userId: string): Promise<void> => {
 
   } catch (error) {
     console.error('Error creating trace flag:', error)
+    throw error
+  }
+}
+
+export interface TraceFlag {
+  Id: string;
+  LogType?: string;
+  StartDate?: string;
+  ExpirationDate: string;
+  DebugLevelId?: string;
+  TracedEntityId: string;
+  TracedEntity: {
+    Name: string;
+  };
+  DebugLevel: {
+    Name: string;
+  };
+}
+
+export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  try {
+    const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+
+    const query = `
+      SELECT Id, TracedEntity.Name, DebugLevel.MasterLabel, ExpirationDate 
+      FROM TraceFlag 
+      ORDER BY ExpirationDate DESC
+    `
+    
+    console.log('Querying trace flags with:', {
+      query,
+      instance_url
+    })
+
+    const response = await fetch(
+      `/api/salesforce/tooling/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    )
+
+    updateApiLimitsFromHeaders(response.headers)
+
+    const data = await response.json()
+    console.log('Trace flags response:', data)
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch trace flags: ${data.error}`)
+    }
+
+    if (!data.records) {
+      console.warn('No records found in response:', data)
+      return []
+    }
+
+    return data.records || []
+  } catch (error) {
+    console.error('Error in queryTraceFlags:', error)
+    throw error
+  }
+}
+
+export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  try {
+    const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+    
+    // Calculate new expiration date (8 hours from now)
+    const expirationDate = new Date()
+    expirationDate.setHours(expirationDate.getHours() + 8)
+
+    const response = await fetch(
+      `/api/salesforce/traceflags/${traceFlagId}?instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ExpirationDate: expirationDate.toISOString()
+        })
+      }
+    )
+
+    updateApiLimitsFromHeaders(response.headers)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`Failed to renew trace flag: ${error.message || 'Unknown error'}`)
+    }
+  } catch (error) {
+    console.error('Error in renewTraceFlag:', error)
+    throw error
+  }
+}
+
+export const deleteTraceFlag = async (traceFlagId: string): Promise<void> => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  try {
+    const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+
+    const response = await fetch(
+      `/api/salesforce/traceflags/${traceFlagId}?instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        }
+      }
+    )
+
+    updateApiLimitsFromHeaders(response.headers)
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(`Failed to delete trace flag: ${error.message || 'Unknown error'}`)
+    }
+  } catch (error) {
+    console.error('Error in deleteTraceFlag:', error)
+    throw error
+  }
+}
+
+export interface SalesforceUser {
+  Id: string;
+  Name: string;
+  Username: string;
+}
+
+export interface DebugLevel {
+  Id: string;
+  MasterLabel: string;
+}
+
+export const queryUsers = async (): Promise<SalesforceUser[]> => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  try {
+    const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+
+    const query = `
+      SELECT Id, Name, Username, IsActive
+      FROM User 
+      WHERE IsActive = true 
+      ORDER BY Name
+    `
+
+    const response = await fetch(
+      `/api/salesforce/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    )
+
+    const data = await response.json()
+    return data.records || []
+  } catch (error) {
+    console.error('Error querying users:', error)
+    throw error
+  }
+}
+
+export const queryDebugLevels = async (): Promise<DebugLevel[]> => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  try {
+    const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+
+    const query = `
+      SELECT Id, MasterLabel 
+      FROM DebugLevel 
+      ORDER BY MasterLabel
+    `
+
+    const response = await fetch(
+      `/api/salesforce/tooling/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    )
+
+    const data = await response.json()
+    return data.records || []
+  } catch (error) {
+    console.error('Error querying debug levels:', error)
     throw error
   }
 } 
