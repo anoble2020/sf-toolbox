@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
-import { Search, LineChart, Bug, Code, Workflow } from "lucide-react"
+import { Search, LineChart, Bug, Code, Workflow, Database } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -21,7 +21,7 @@ interface CollapsibleLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DEBUG';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DEBUG' | 'DML';
   isCollapsible?: boolean;
   nestLevel?: number;
   isSelected?: boolean;
@@ -113,6 +113,39 @@ const renderDebugLine = (content: string) => {
   );
 };
 
+const renderDmlLine = (content: string) => {
+  const [timestamp, ...parts] = content.split(' | ');
+  
+  // Check if this line includes row count
+  const rowsMatch = parts.join(' | ').match(/Rows: (\d+)$/);
+  const rows = rowsMatch ? rowsMatch[1] : null;
+  
+  // Remove rows from main content if it exists
+  const mainContent = rows 
+    ? parts.join(' | ').replace(` | Rows: ${rows}`, '')
+    : parts.join(' | ');
+
+  return (
+    <div className="flex items-center gap-2 w-full">
+      {/* Timestamp */}
+      <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
+      
+      {/* Database icon with background */}
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ee4de1]">
+        <Database className="w-4 h-4 text-white" />
+      </div>
+      
+      {/* Main content */}
+      <span className="flex-1">{mainContent}</span>
+      
+      {/* Rows count on the right if it exists */}
+      {rows && (
+        <span className="text-gray-600 whitespace-nowrap">Rows: {rows}</span>
+      )}
+    </div>
+  );
+};
+
 const renderContent = (line: CollapsibleLine) => {
   switch (line.type) {
     case 'SOQL':
@@ -123,6 +156,8 @@ const renderContent = (line: CollapsibleLine) => {
       return renderCodeUnitLine(line.summary);
     case 'DEBUG':
       return renderDebugLine(line.summary);
+    case 'DML':
+      return renderDmlLine(line.summary);
     default:
       return <span>{line.summary}</span>;
   }

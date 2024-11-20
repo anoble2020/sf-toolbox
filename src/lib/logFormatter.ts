@@ -13,7 +13,7 @@ interface FormattedLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DML';
   isCollapsible?: boolean;
   suffix?: string;
   nestLevel?: number;
@@ -166,6 +166,34 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
         isCollapsible: false,
         originalIndex
       };
+    }
+  } else if (cleanLine.includes('DML_')) {
+    const isDmlBegin = cleanLine.includes('DML_BEGIN');
+    if (isDmlBegin) {
+      const dmlMatch = cleanLine.match(/DML_BEGIN\|\[(\d+)\]\|Op:(\w+)\|Type:(\w+)\|Rows:(\d+)/);
+      if (dmlMatch) {
+        const [_, lineNum, operation, objectType, rows] = dmlMatch;
+        return {
+          id: baseId,
+          time,
+          summary: `${time} | DML BEGIN | Object: ${objectType} | ${operation} | Rows: ${rows}`,
+          type: 'DML',
+          isCollapsible: false,
+          originalIndex
+        };
+      }
+    } else {
+      const dmlEndMatch = cleanLine.match(/DML_END\|\[(\d+)\]/);
+      if (dmlEndMatch) {
+        return {
+          id: baseId,
+          time,
+          summary: `${time} | DML END`,
+          type: 'DML',
+          isCollapsible: false,
+          originalIndex
+        };
+      }
     }
   }
 
