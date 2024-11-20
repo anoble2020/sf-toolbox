@@ -124,7 +124,8 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
 
     if (isStart) {
       // Updated trigger pattern to be more precise
-      const startMatch = cleanLine.match(/CODE_UNIT_STARTED\|\[EXTERNAL\]\|[^|]+\|([^|]+?)(?= on \w+ trigger event ).*?trigger event ([^|]+)/);
+      const startMatch = cleanLine.match(/CODE_UNIT_STARTED\|[^|]+\|([^|]+?)(?= on).*?trigger event (\w+)/);     
+      console.log('startMatch', startMatch);
       if (startMatch) {
         console.log('Matched START:', startMatch);
         const [, trigger, event] = startMatch;
