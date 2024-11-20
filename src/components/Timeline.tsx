@@ -1,22 +1,28 @@
 import { useEffect, useRef, useState } from 'react'
 import mermaid from 'mermaid'
+import { X } from 'lucide-react'
 
 interface TimelineProps {
   logContent: string
+  onClose: () => void
+  onEventClick: (lineNumber: number) => void
 }
 
 interface LogEvent {
   id: string
   name: string
-  start: string
-  end: string
+  start: number
+  end: number
   level: number
+  lineNumber: number
 }
 
-export function Timeline({ logContent }: TimelineProps) {
+export function Timeline({ logContent, onClose, onEventClick }: TimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
   const [debug, setDebug] = useState<string[]>([])
+
+  console.log('rendering timeline');
 
   useEffect(() => {
     if (!containerRef.current) return
@@ -43,144 +49,132 @@ export function Timeline({ logContent }: TimelineProps) {
           barGap: 4,
           topPadding: 50,
           sidePadding: 75,
-          numberSectionStyles: 4
+          numberSectionStyles: 4,
+          fontSize: 12,
+          useWidth: 1000
         },
         securityLevel: 'loose'
       })
 
-      const uniqueId = `timeline-diagram-${Date.now()}`
-      
-      mermaid.render(uniqueId, diagram)
+      const handleClick = (e: MouseEvent) => {
+        const target = e.target as SVGElement
+        if (target.closest('.task')) {
+          const taskId = target.closest('.task')?.id
+          const event = events.find(e => e.id === taskId)
+          if (event) {
+            onEventClick(event.lineNumber)
+          }
+        }
+      }
+
+      mermaid.render('timeline-diagram', diagram)
         .then(({ svg }) => {
           if (containerRef.current) {
             containerRef.current.innerHTML = svg
+            containerRef.current.addEventListener('click', handleClick)
           }
         })
         .catch(err => {
           setError(err.message)
-          addDebug(`Render error: ${err.message}`)
         })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
-      addDebug(`Processing error: ${err}`)
     }
-
-    // Cleanup function
-    return () => {
-      if (containerRef.current) {
-        // Clear the container's contents before unmounting
-        containerRef.current.innerHTML = '';
-      }
-    };
   }, [logContent])
 
   return (
-    <div className="p-4">
-      {error && (
-        <div className="mb-4 p-2 bg-red-50 text-red-700 rounded">
-          Error: {error}
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl max-w-[90vw] max-h-[90vh] w-[1200px] relative">
+        <button 
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <X className="w-6 h-6" />
+        </button>
+        
+        <div className="p-6">
+          <h2 className="text-lg font-semibold mb-4">Execution Timeline</h2>
+          {error && (
+            <div className="mb-4 p-2 bg-red-50 text-red-700 rounded">
+              Error: {error}
+            </div>
+          )}
+          <div ref={containerRef} className="w-full overflow-x-auto" />
         </div>
-      )}
-      <div ref={containerRef} className="w-full overflow-x-auto" />
-      <div className="mt-4 p-2 bg-gray-50 rounded text-xs font-mono">
-        <pre>{debug.join('\n')}</pre>
       </div>
     </div>
   )
 }
 
-function parseLogEvents(content: string): LogEvent[] {
-  const events: LogEvent[] = []
-  const lines = content.split('\n')
-  const regex = /(\d{2}:\d{2}:\d{2}\.?\d*)\s*\(\d+\)\|(CODE_UNIT_(?:STARTED|FINISHED))\|(?:\[EXTERNAL\]\|)?(.+)/
-  const baseDate = '2024-01-01 '
+const parseTimestamp = (timestamp: string): number => {
+  // Split into time and microseconds: "06:01:24.0 (16781155)"
+  const [timeStr, microsStr] = timestamp.split(' (')
   
-  // First pass: collect start times
-  const startEvents = new Map<string, { time: string, name: string }>()
+  // Parse the base time
+  const [hours, minutes, seconds] = timeStr.split(':')
+  const baseDate = new Date(2024, 0, 1) // Use arbitrary date since we only care about time
+  baseDate.setHours(parseInt(hours))
+  baseDate.setMinutes(parseInt(minutes))
+  baseDate.setSeconds(parseFloat(seconds))
   
-  lines.forEach(line => {
-    const match = line.match(regex)
-    if (match) {
-      const [_, timestamp, eventType, details] = match
-      const formattedTime = baseDate + timestamp.replace(/(\d{2}:\d{2}:\d{2})\.?(\d*)/, (_, time, ms) => {
-        return `${time}.${ms.padEnd(3, '0').slice(0, 3)}`
-      })
-      
-      // Handle both trigger and non-trigger events
-      const eventKey = details.includes('|') ? details : details.replace(/\[EXTERNAL\]\|/, '')
-      
-      if (eventType === 'CODE_UNIT_STARTED') {
-        startEvents.set(eventKey, { time: formattedTime, name: details })
-      } else if (eventType === 'CODE_UNIT_FINISHED') {
-        const startEvent = startEvents.get(eventKey)
-        if (startEvent) {
-          events.push({
-            id: `event_${events.length}`,
-            name: details,
-            start: startEvent.time,
-            end: formattedTime,
-            level: 0
-          })
-          startEvents.delete(eventKey)
-        }
-      }
-    }
-  })
+  // Add microseconds if present
+  if (microsStr) {
+    const micros = parseInt(microsStr.replace(')', '')) / 1000 // Convert to milliseconds
+    return baseDate.getTime() + micros
+  }
   
-  // Calculate levels for overlapping events
-  events.sort((a, b) => a.start.localeCompare(b.start))
-  
-  events.forEach((event, i) => {
-    let level = 0
-    let overlap = true
-    while (overlap) {
-      overlap = false
-      for (let j = 0; j < i; j++) {
-        if (events[j].level === level && 
-            event.start <= events[j].end && 
-            event.end >= events[j].start) {
-          overlap = true
-          break
-        }
-      }
-      if (overlap) level++
-    }
-    event.level = level
-  })
-  
-  return events
+  return baseDate.getTime()
 }
 
-function generateGanttDiagram(events: LogEvent[]): string {
-  const diagram = [
-    'gantt',
-    '    dateFormat YYYY-MM-DD HH:mm:ss.S',
-    '    axisFormat %H:%M:%S.%L',
-    '    section timeline',
-    ''
-  ]
+const parseLogEvents = (content: string): LogEvent[] => {
+  const events: LogEvent[] = []
+  const stack: LogEvent[] = []
+  const lines = content.split('\n')
   
-  events.forEach(event => {
-    const startTime = new Date(event.start).getTime()
-    const endTime = new Date(event.end).getTime()
-    const durationMs = endTime - startTime
-    const durationS = Math.max(durationMs / 1000, 0.001)
+  lines.forEach(line => {
+    if (!line.includes('CODE_UNIT_')) return
     
-    // Clean up the name for display
-    const displayName = event.name
-      .replace(/\[EXTERNAL\]\|/, '')
-      .replace(/\|__sfdc_trigger\//g, '')
-      .replace(/\|/g, ' - ')
-      .trim()
+    const [timestamp, , eventType, , id, name] = line.split('|')
+    const time = parseTimestamp(timestamp)
     
-    // Create a unique ID that includes the level for proper stacking
-    const sanitizedId = `${displayName}_${event.level}`
-      .replace(/[^\w]/g, '_')
-      .toLowerCase()
-    
-    // Add task definition with explicit start and duration
-    diagram.push(`    ${sanitizedId} :done, ${displayName}, ${event.start}, ${durationS}s`)
+    if (eventType === 'CODE_UNIT_STARTED') {
+      const level = stack.length
+      const event: LogEvent = {
+        id,
+        name,
+        start: time,
+        end: 0, // Will be set when we find the matching FINISHED event
+        level,
+        lineNumber: lines.indexOf(line)
+      }
+      events.push(event)
+      stack.push(event)
+    } 
+    else if (eventType === 'CODE_UNIT_FINISHED') {
+      const matchingEvent = stack.pop()
+      if (matchingEvent && matchingEvent.id === id) {
+        matchingEvent.end = time
+      }
+    }
   })
   
-  return diagram.join('\n')
+  // Remove any events that don't have an end time
+  return events.filter(e => e.end > 0)
+}
+
+const generateGanttDiagram = (events: LogEvent[]): string => {
+  const minTime = Math.min(...events.map(e => e.start))
+  let diagram = 'gantt\n'
+  diagram += 'dateFormat x\n' // Use raw numbers for dates
+  diagram += 'axisFormat %L\n' // Show milliseconds
+  
+  events.forEach(event => {
+    const startOffset = event.start - minTime
+    const duration = event.end - event.start
+    const indent = '  '.repeat(event.level)
+    diagram += `${indent}section ${event.name}\n`
+    diagram += `${indent}${event.name} :${startOffset}, ${duration}\n`
+  })
+  
+  return diagram
 } 

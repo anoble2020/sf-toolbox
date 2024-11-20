@@ -179,6 +179,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   }>({ pretty: null, raw: null });
   const selectedLineRef = useRef<HTMLDivElement>(null);
   const [originalLineIndices, setOriginalLineIndices] = useState<Map<string, number>>(new Map());
+  const logContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (selectedLineContent && selectedLineRef.current) {
@@ -343,6 +344,15 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
     );
   };
 
+  const handleEventClick = (lineNumber: number) => {
+    setShowTimeline(false);
+    // Scroll to the line in the log
+    if (logContentRef.current) {
+      const lineElement = logContentRef.current.querySelector(`[data-line="${lineNumber}"]`);
+      lineElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col ml-1">
       <div className="flex-none bg-white border-b border-gray-200 p-2">
@@ -390,6 +400,7 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
             </Button>
             <Button
                 variant="outline"
+                disabled
                 size="sm"
                 onClick={() => setShowReplay(!showReplay)}
                 >
@@ -403,7 +414,11 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
       {showTimeline && (
         <div className="flex-none bg-gray-50 border-b border-gray-200">
           {/* <Timeline logContent={content} /> */}
-          <TraceViewer content={content} />
+          <TraceViewer 
+            content={content} 
+          onClose={() => setShowTimeline(false)}
+          onEventClick={handleEventClick}
+          />
         </div>
       )}
         {/* Replay section */}
