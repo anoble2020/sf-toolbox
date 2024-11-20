@@ -284,7 +284,7 @@ export function formatLogs(lines: string[]): FormattedLine[] {
       
       formattedLines.push({
         ...formattedLine,
-        summary: `${formattedLine.time} | [${lineNumber}] | ${boldSqlKeywords(sqlQuery)}${aggregations}${rowCount}`,
+        summary: `${formattedLine.time} | SOQL [${lineNumber}] | ${boldSqlKeywords(sqlQuery)}${aggregations}${rowCount}`,
         type: 'SOQL',
         isCollapsible: false,
         originalIndex
