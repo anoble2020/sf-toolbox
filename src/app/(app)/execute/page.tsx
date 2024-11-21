@@ -1,16 +1,89 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import { toast } from 'sonner'
 import { CodeEditor } from '@/components/CodeEditor'
+import { SaveCodeBlockModal } from '@/components/SaveCodeBlockModal'
 import { refreshAccessToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
+import { Save, X, Trash2 } from 'lucide-react'
+import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
+
+const STORAGE_KEY = 'saved_code_blocks'
 
 export default function ExecutePage() {
   const [code, setCode] = useState('')
   const [isExecuting, setIsExecuting] = useState(false)
+  const [isSaveModalOpen, setSaveModalOpen] = useState(false)
+  const [savedBlocks, setSavedBlocks] = useState<SavedCodeBlock[]>([])
+  const [activeBlock, setActiveBlock] = useState<SavedCodeBlock | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const router = useRouter()
+
+  // Load saved blocks on mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY)
+    if (saved) {
+      setSavedBlocks(JSON.parse(saved))
+    }
+  }, [])
+
+  const saveBlocks = (blocks: SavedCodeBlock[]) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks))
+    setSavedBlocks(blocks)
+  }
+
+  const handleSaveNew = (name: string) => {
+    const newBlock: SavedCodeBlock = {
+      id: crypto.randomUUID(),
+      name,
+      code,
+      lastModified: new Date().toISOString()
+    }
+    
+    const updated = [...savedBlocks, newBlock]
+    saveBlocks(updated)
+    setActiveBlock(newBlock)
+    toast.success('Code block saved')
+  }
+
+  const handleUpdateActive = () => {
+    if (!activeBlock) return
+    
+    const updated = savedBlocks.map(block => 
+      block.id === activeBlock.id 
+        ? { ...block, code, lastModified: new Date().toISOString() }
+        : block
+    )
+    
+    saveBlocks(updated)
+    setActiveBlock({ ...activeBlock, code, lastModified: new Date().toISOString() })
+    toast.success('Code block updated')
+  }
+
+  const handleLoad = (block: SavedCodeBlock) => {
+    setCode(block.code)
+    setActiveBlock(block)
+  }
+
+  const handleDelete = (block: SavedCodeBlock) => {
+    if (!confirm(`Are you sure you want to delete "${block.name}"?`)) return
+    
+    const updated = savedBlocks.filter(b => b.id !== block.id)
+    saveBlocks(updated)
+    
+    if (activeBlock?.id === block.id) {
+      handleClose()
+    }
+    
+    toast.success('Code block deleted')
+  }
+
+  const handleClose = () => {
+    setActiveBlock(null)
+    setCode('')
+  }
 
   const executeCode = async (codeToExecute: string) => {
     const refreshToken = localStorage.getItem('sf_refresh_token')
@@ -89,6 +162,28 @@ export default function ExecutePage() {
 
   return (
     <div className="p-4 h-full flex flex-col">
+      {/* Active Block Header */}
+      {activeBlock && (
+        <div className="flex items-center gap-2 mb-2">
+          <span className="font-medium">{activeBlock.name}</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleUpdateActive}
+          >
+            <Save className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleClose}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {/* Code Editor */}
       <div className="flex-1">
         <CodeEditor
           value={code}
@@ -96,6 +191,8 @@ export default function ExecutePage() {
           language="apex"
         />
       </div>
+
+      {/* Action Buttons */}
       <div className="flex gap-2 mt-4">
         <Button 
           onClick={handleExecute}
@@ -110,7 +207,33 @@ export default function ExecutePage() {
         >
           Execute Highlighted
         </Button>
+        <Button
+          onClick={() => setSaveModalOpen(true)}
+          variant="outline"
+        >
+          Save Block
+        </Button>
+        <Button
+          onClick={() => setIsDrawerOpen(true)}
+          variant="outline"
+        >
+          View Saved
+        </Button>
       </div>
+
+      <SaveCodeBlockModal
+        isOpen={isSaveModalOpen}
+        onClose={() => setSaveModalOpen(false)}
+        onSave={handleSaveNew}
+      />
+
+      <SavedBlocksDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        blocks={savedBlocks}
+        onLoad={handleLoad}
+        onDelete={handleDelete}
+      />
     </div>
   )
 } 
