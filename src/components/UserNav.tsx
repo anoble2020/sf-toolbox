@@ -24,13 +24,15 @@ export default function UserNav({ username, orgDomain }: UserNavProps) {
     router.push('/auth')
   }
 
+  console.log(username, orgDomain)
+
   return (
     <div className="flex items-center gap-4">
-      <div className="flex flex-col items-end">
-        <span className="text-sm font-medium">{username}</span>
-        <span className="text-xs text-muted-foreground">{orgDomain}</span>
-      </div>
-      <DropdownMenu>
+        <div className="flex flex-col items-end">
+            <span className="text-sm font-light">{username}</span>
+            <span className="text-xs text-muted-foreground">{orgDomain}</span>
+        </div>
+        <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Avatar className="h-8 w-8 cursor-pointer">
             <AvatarFallback>

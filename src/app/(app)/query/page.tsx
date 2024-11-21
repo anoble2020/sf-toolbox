@@ -214,7 +214,6 @@ export default function QueryPage() {
 
   return (
     <div className="p-4">
-      
       <div className="space-y-4">
         <Textarea
           value={query}
@@ -250,65 +249,79 @@ export default function QueryPage() {
               </div>
             </div>
             
-            <div className="border rounded-md max-h-[800px] overflow-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {getColumns().map((column) => (
-                      <TableHead 
-                        key={column}
-                        className="cursor-pointer hover:bg-gray-50"
-                        onClick={() => handleSort(column)}
-                      >
-                        <div className="flex items-center gap-2">
-                          {column}
-                          {sortConfig.column === column && (
-                            <span className="text-xs">
-                              {sortConfig.direction === 'asc' ? '↑' : '↓'}
-                            </span>
-                          )}
-                        </div>
-                      </TableHead>
-                    ))}
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filterRecords(sortRecords(results.records)).map((record) => (
-                    <TableRow key={record.Id}>
-                      {getColumns().map((column) => (
-                        <TableCell key={`${record.Id}-${column}`}>
+            <div className="border rounded-md">
+              {/* Fixed header */}
+              <div className="sticky top-0 bg-white z-20 border-b">
+                <div className="w-full table table-fixed">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        {getColumns().map((column) => (
+                          <TableHead 
+                            key={column}
+                            className="cursor-pointer hover:bg-gray-50 min-w-[80px] bg-white w-[200px]"
+                            onClick={() => handleSort(column)}
+                          >
                             <div className="flex items-center gap-2">
-                            {getNestedValue(record, column)}
-                          {column === 'Id' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation() // Prevent sorting when clicking copy
-                                copyToClipboard(record.Id)
-                              }}
-                              className="h-6 w-6 p-0 hover:bg-gray-100"
-                            >
-                              <Copy className="h-4 w-4" />
-                            </Button>
-                          )}
-                          </div>
+                              {column}
+                              {sortConfig.column === column && (
+                                <span className="text-xs">
+                                  {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                                </span>
+                              )}
+                            </div>
+                          </TableHead>
+                        ))}
+                        <TableHead className="min-w-[80px] bg-white w-[80px]"></TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  </Table>
+                </div>
+              </div>
+
+              {/* Scrollable body */}
+              <div className="max-h-[600px] overflow-auto">
+                <Table>
+                  <TableBody>
+                    {filterRecords(sortRecords(results.records)).map((record) => (
+                      <TableRow key={record.Id}>
+                        {getColumns().map((column) => (
+                          <TableCell 
+                            key={`${record.Id}-${column}`}
+                            className="min-w-[80px] w-[200px]"
+                          >
+                            <div className="flex items-center gap-2">
+                              {getNestedValue(record, column)}
+                              {column === 'Id' && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    copyToClipboard(record.Id)
+                                  }}
+                                  className="h-6 w-6 p-0 hover:bg-gray-100"
+                                >
+                                  <Copy className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        ))}
+                        <TableCell className="min-w-[80px] w-[80px]">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openInSalesforce(record.Id)}
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
                         </TableCell>
-                      ))}
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openInSalesforce(record.Id)}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
         )}

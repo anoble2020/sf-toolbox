@@ -46,11 +46,11 @@ export default function Layout({ children }: LayoutProps) {
       {/* Fixed sidebar */}
       <aside className="w-64 fixed inset-y-0 left-0 flex flex-col bg-white border-r border-gray-200 z-50">
         {/* Logo section */}
-        <div className="h-16 flex flex-col justify-center px-6 border-b border-gray-200">
+        <div className="h-16 flex flex-col justify-center px-6 border-b border-gray-200 ">
           <div className="flex items-center mt-2">
             <img src="/icon_128_purp.png" alt="apex toolbox" className="w-8 h-8 mb-6 mr-2" />
             <span className="text-xl font-semibold">sf toolbox
-            <div className="text-[10px] text-gray-400 -mt-1 ml-10">
+            <div className="text-[10px] text-gray-400 -mt-1 ml-10 ">
             v0.0.1
           </div>
           </span>
@@ -58,16 +58,16 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 mt-6 px-3">
+        <nav className="flex-1 pt-6 px-3 bg-[#fafafa]">
           {menuItems.map((item) => (
             <Link
               key={item.path}
               href={item.path}
               className={cn(
-                "flex items-center px-3 py-2 rounded-md mb-1 text-sm font-medium",
+                "flex items-center px-3 py-1.5 rounded-md mb-1 text-sm font-weight-[400]",
                 pathname === item.path
-                  ? "bg-gray-100 text-gray-900"
-                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  ? "bg-[#e1e1e1] text-gray-900"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               )}
             >
               <item.icon className="w-4 h-4 mr-3" />

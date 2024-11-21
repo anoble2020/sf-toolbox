@@ -1,14 +1,8 @@
-import { Manrope } from 'next/font/google';
 import type { Metadata } from "next";
-import Layout from '@/components/Layout';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
-
-const manrope = Manrope({
-  subsets: ['latin'],
-  weight: ['200', '300', '400', '500', '600', '700', '800'],
-  variable: '--font-manrope',
-});
 
 export const metadata: Metadata = {
   title: "toolkit",
@@ -37,8 +31,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={manrope.variable}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body>
         {children}
         <Toaster />
       </body>

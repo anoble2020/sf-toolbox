@@ -184,7 +184,7 @@ export default function ExecutePage() {
       )}
 
       {/* Code Editor */}
-      <div className="flex-1">
+      <div className="flex-1 min-h-[200px] mb-4">
         <CodeEditor
           value={code}
           onChange={setCode}
@@ -193,7 +193,7 @@ export default function ExecutePage() {
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2">
         <Button 
           onClick={handleExecute}
           disabled={isExecuting}
@@ -207,12 +207,14 @@ export default function ExecutePage() {
         >
           Execute Highlighted
         </Button>
-        <Button
-          onClick={() => setSaveModalOpen(true)}
+        {!activeBlock && (
+          <Button
+            onClick={() => setSaveModalOpen(true)}
           variant="outline"
         >
-          Save Block
-        </Button>
+            Add to Saved Blocks
+          </Button>
+        )}
         <Button
           onClick={() => setIsDrawerOpen(true)}
           variant="outline"

@@ -5,6 +5,7 @@ import CodeMirror from '@uiw/react-codemirror'
 import { StreamLanguage } from '@codemirror/language'
 import { java } from '@codemirror/legacy-modes/mode/clike'
 import { vscodeLightInit } from '@uiw/codemirror-theme-vscode'
+import { EditorState } from '@codemirror/state'
 
 interface CodeEditorProps {
   value: string
@@ -26,7 +27,9 @@ export function CodeEditor({ value, onChange, language = 'apex' }: CodeEditorPro
   return (
     <CodeMirror
       value={value}
-      height="100%"
+      height="auto"
+      minHeight="200px"
+      maxHeight="calc(100vh - 200px)"
       theme={vscodeLightInit({
         settings: {
           background: '#ffffff',
@@ -37,8 +40,16 @@ export function CodeEditor({ value, onChange, language = 'apex' }: CodeEditorPro
         }
       })}
       onChange={onChange}
-      extensions={[StreamLanguage.define(java)]}
-      className="border rounded-md"
+      extensions={[
+        StreamLanguage.define(java),
+        EditorState.tabSize.of(4),
+        EditorState.phrases.of({
+          "active-line-gutter": false,
+          "active-line-highlight": false
+        })
+      ]}
+      className="border rounded-md overflow-y-auto"
+      placeholder="Enter Anonymous Apex here..."
     />
   )
 } 
