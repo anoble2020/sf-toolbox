@@ -49,7 +49,7 @@ export default function Layout({ children }: LayoutProps) {
         <div className="h-16 flex flex-col justify-center px-6 border-b border-gray-200">
           <div className="flex items-center mt-2">
             <img src="/icon_128_purp.png" alt="apex toolbox" className="w-8 h-8 mb-6 mr-2" />
-            <span className="text-xl font-semibold">apex toolbox
+            <span className="text-xl font-semibold">sf toolbox
             <div className="text-[10px] text-gray-400 -mt-1 ml-10">
             v0.0.1
           </div>
