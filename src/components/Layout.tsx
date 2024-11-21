@@ -70,7 +70,7 @@ export default function Layout({ children }: LayoutProps) {
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               )}
             >
-              <item.icon className="w-4 h-4 mr-3" />
+              <item.icon className="w-3 h-3 mr-3" />
               {item.name}
             </Link>
           ))}
