@@ -10,8 +10,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronUp } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
+import { ChevronDown, ChevronRight } from "lucide-react"
+import { format } from 'date-fns'
 
 interface TestRun {
   classId: string
@@ -46,13 +46,14 @@ export function TestResultsTable({ runs, testClasses }: TestResultsTableProps) {
           <TableHead>Class</TableHead>
           <TableHead>Status</TableHead>
           <TableHead>Pass/Fail</TableHead>
-          <TableHead>Coverage</TableHead>
+          <TableHead>Run Time</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
         {runs.map(run => {
           const testClass = testClasses.find(c => c.Id === run.classId)
           const isExpanded = expandedRuns.includes(run.testRunId)
+          const lastRunTime = run.results?.[0]?.TestTimestamp
           
           if (!testClass) return null
 
@@ -67,9 +68,9 @@ export function TestResultsTable({ runs, testClasses }: TestResultsTableProps) {
                     disabled={run.status === 'running'}
                   >
                     {isExpanded ? (
-                      <ChevronUp className="h-4 w-4" />
-                    ) : (
                       <ChevronDown className="h-4 w-4" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4" />
                     )}
                   </Button>
                 </TableCell>
@@ -93,23 +94,7 @@ export function TestResultsTable({ runs, testClasses }: TestResultsTableProps) {
                   )}
                 </TableCell>
                 <TableCell>
-                  {run.status === 'completed' && !run.error && run.coverage?.[0] && (
-                    <div className="flex items-center gap-2">
-                      <Progress 
-                        value={
-                          (run.coverage[0].NumLinesCovered / 
-                          (run.coverage[0].NumLinesCovered + run.coverage[0].NumLinesUncovered)) * 100
-                        } 
-                        className="w-[100px]" 
-                      />
-                      <span className="text-sm">
-                        {Math.round(
-                          (run.coverage[0].NumLinesCovered / 
-                          (run.coverage[0].NumLinesCovered + run.coverage[0].NumLinesUncovered)) * 100
-                        )}%
-                      </span>
-                    </div>
-                  )}
+                  {lastRunTime ? format(new Date(lastRunTime), 'MMM d, yyyy h:mm a') : '-'}
                 </TableCell>
               </TableRow>
               {isExpanded && run.status === 'completed' && !run.error && (

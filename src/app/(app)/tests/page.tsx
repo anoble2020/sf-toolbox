@@ -11,9 +11,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
-import { Play, Loader2 } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { 
+  Play, 
+  Loader2, 
+  Search, 
+  ChevronLeft, 
+  ChevronRight,
+  Trash2,
+  LineChart 
+} from "lucide-react"
 import { SelectTestMethodsModal } from '@/components/SelectTestMethodsModal'
 import { TestResultsTable } from '@/components/TestResultsTable'
+import { CoverageSheet } from '@/components/CoverageSheet'
 import { toast } from 'sonner'
 
 interface TestClass {
@@ -40,6 +50,10 @@ export default function TestsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [runningTests, setRunningTests] = useState<Set<string>>(new Set())
   const [testRuns, setTestRuns] = useState<TestRun[]>([])
+  const [searchQuery, setSearchQuery] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
+  const [isCoverageOpen, setIsCoverageOpen] = useState(false)
 
   const fetchTestClasses = async () => {
     try {
@@ -244,6 +258,31 @@ export default function TestsPage() {
     }
   }
 
+  // Filter test classes based on search
+  const filteredClasses = testClasses.filter(testClass => 
+    testClass.Name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredClasses.length / itemsPerPage)
+
+  // Get current page's classes
+  const paginatedClasses = filteredClasses.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchQuery])
+
+  // Clear test results
+  const clearTestResults = () => {
+    setTestRuns([])
+    toast.success('Test results cleared')
+  }
+
   if (loading) {
     return (
       <div className="text-center justify-center mt-16">
@@ -258,54 +297,122 @@ export default function TestsPage() {
   }
 
   return (
-    <div className="p-4 space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Test Classes</h2>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Class Name</TableHead>
-              <TableHead>Methods</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {testClasses.map((testClass) => (
-              <TableRow key={testClass.Id}>
-                <TableCell>{testClass.Name}</TableCell>
-                <TableCell>{testClass.testMethods.length} test methods</TableCell>
-                <TableCell>
-                  {runningTests.has(testClass.Id) ? (
-                    <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm text-gray-500">Running...</span>
-                    </div>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedClass(testClass)
-                        setIsModalOpen(true)
-                      }}
-                    >
-                      <Play className="h-4 w-4 mr-2" />
-                      Run Tests
-                    </Button>
-                  )}
-                </TableCell>
+    <div className="flex flex-col h-[calc(100vh-4rem)] p-4 gap-4">
+      {/* Test Classes Section - Top Half */}
+      <div className="h-1/2 flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Test Classes</h2>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search classes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 w-[250px]"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-auto border rounded-md">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Class Name</TableHead>
+                <TableHead>Methods</TableHead>
+                <TableHead>Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {paginatedClasses.map((testClass) => (
+                <TableRow key={testClass.Id}>
+                  <TableCell>{testClass.Name}</TableCell>
+                  <TableCell>{testClass.testMethods.length} test methods</TableCell>
+                  <TableCell>
+                    {runningTests.has(testClass.Id) ? (
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm text-gray-500">Running...</span>
+                      </div>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedClass(testClass)
+                          setIsModalOpen(true)
+                        }}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        Run Tests
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination Controls */}
+        <div className="flex justify-between items-center p-2 border-t">
+          <div className="text-xs text-gray-500">
+            Page {currentPage} of {totalPages}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
       </div>
 
-      {testRuns.length > 0 && (
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Test Results</h2>
-          <TestResultsTable runs={testRuns} testClasses={testClasses} />
-        </div>
-      )}
+      {/* Test Results Section - Bottom Half */}
+      <div className="h-1/2 flex flex-col">
+        {testRuns.length > 0 && (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Test Results</h2>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCoverageOpen(true)}
+                >
+                  <LineChart className="h-4 w-4 mr-2" />
+                  View Coverage
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={clearTestResults}
+                  className="text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear Results
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto border rounded-md">
+              <TestResultsTable runs={testRuns} testClasses={testClasses} />
+            </div>
+          </>
+        )}
+      </div>
 
       {selectedClass && (
         <SelectTestMethodsModal
@@ -318,6 +425,11 @@ export default function TestsPage() {
           }}
         />
       )}
+
+      <CoverageSheet 
+        open={isCoverageOpen} 
+        onOpenChange={setIsCoverageOpen}
+      />
     </div>
   )
 } 

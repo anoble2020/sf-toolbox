@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     console.log('Running tests for:', { classId, methodNames })
 
-    // Create the test run
+    // Create the test run with the correct format
     const response = await fetch(
       `${instance_url}/services/data/v59.0/tooling/runTestsAsynchronous`,
       {
@@ -33,11 +33,12 @@ export async function POST(request: Request) {
         },
         body: JSON.stringify({
           classids: [classId],
-          testLevel: 'RunSpecifiedTests',
-          tests: methodNames.map(methodName => ({
-            classId,
-            testMethods: [methodName]
-          }))
+          suiteids: [],
+          tests: [{
+            classId: classId,
+            testMethods: methodNames
+          }],
+          testLevel: 'RunSpecifiedTests'
         })
       }
     )
