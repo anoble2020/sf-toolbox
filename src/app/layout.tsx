@@ -2,6 +2,7 @@ import { Manrope } from 'next/font/google';
 import type { Metadata } from "next";
 import Layout from '@/components/Layout';
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const manrope = Manrope({
   subsets: ['latin'],
@@ -39,6 +40,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={manrope.variable}>
         {children}
+        <Toaster />
       </body>
     </html>
   );

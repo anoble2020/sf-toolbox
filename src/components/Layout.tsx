@@ -1,6 +1,6 @@
 "use client";
 
-import { Scroll, Flag, FlaskConical, Search, Play, Github, Coffee } from 'lucide-react';
+import { Scroll, Flag, FlaskConical, Search, Play, Github, Coffee, Telescope } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -35,9 +35,10 @@ export default function Layout({ children }: LayoutProps) {
   const menuItems = [
     { name: 'Logs', path: '/logs', icon: Scroll },
     { name: 'Trace Flags', path: '/trace-flags', icon: Flag },
-    { name: 'Tests', path: '/tests', icon: FlaskConical },
     { name: 'Query', path: '/query', icon: Search },
     { name: 'Execute', path: '/execute', icon: Play },
+    { name: 'Tests', path: '/tests', icon: FlaskConical },
+    { name: 'Explore', path: '/explore', icon: Telescope },
   ];
 
   return (
