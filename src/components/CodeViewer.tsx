@@ -13,7 +13,6 @@ interface CodeViewerProps {
   language: 'apex' | 'javascript' | 'html' | 'xml'
   coveredLines?: number[]
   uncoveredLines?: number[]
-  highlightedLines?: number[]
 }
 
 const getLanguageExtension = (language: string) => {
@@ -39,7 +38,7 @@ const uncoveredLineTheme = Decoration.line({
   attributes: { class: "bg-red-50" }
 })
 
-const createLineDecorations = (view: EditorView, coveredLines: number[], uncoveredLines: number[]) => {
+const createLineDecorations = (view: EditorView, coveredLines: number[] = [], uncoveredLines: number[] = []) => {
   const decorations: Range<Decoration>[] = []
   const doc = view.state.doc
 
@@ -66,7 +65,7 @@ const createLineDecorations = (view: EditorView, coveredLines: number[], uncover
   // Sort decorations by their 'from' position
   decorations.sort((a, b) => a.from - b.from)
 
-  return Decoration.set(decorations, true) // true for "sorted" argument
+  return Decoration.set(decorations, true)
 }
 
 export function CodeViewer({ 
@@ -74,7 +73,6 @@ export function CodeViewer({
   language, 
   coveredLines = [], 
   uncoveredLines = [],
-  highlightedLines = []
 }: CodeViewerProps) {
   const [mounted, setMounted] = useState(false)
 
@@ -86,6 +84,9 @@ export function CodeViewer({
     return null
   }
 
+  // Ensure content is a string
+  const stringContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
+
   // Create the coverage highlighting extension
   const coverageHighlightExtension = EditorView.decorations.of(view => {
     return createLineDecorations(view, coveredLines, uncoveredLines)
@@ -93,7 +94,7 @@ export function CodeViewer({
 
   return (
     <CodeMirror
-      value={content}
+      value={stringContent}
       height="100%"
       theme={vscodeLightInit({
         settings: {

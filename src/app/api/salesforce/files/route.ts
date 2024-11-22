@@ -3,17 +3,14 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const instance_url = searchParams.get('instance_url')
-
-  if (!instance_url) {
-    return NextResponse.json({ error: 'Missing instance URL' }, { status: 400 })
-  }
-
   const authorization = request.headers.get('authorization')
-  if (!authorization) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  if (!instance_url || !authorization) {
+    return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
   }
 
   try {
+    console.log('Fetching files with composite API...')
     const compositeRequest = {
       compositeRequest: [
         {
@@ -40,8 +37,9 @@ export async function GET(request: Request) {
         {
           method: 'GET',
           url: '/services/data/v59.0/tooling/query/?q=' + encodeURIComponent(`
-            SELECT Id, DeveloperName, LastModified
+            SELECT Id, DeveloperName, LastModifiedDate
             FROM LightningComponentBundle
+            WHERE ApiVersion > 0
             ORDER BY DeveloperName
           `),
           referenceId: 'lwc'
@@ -49,14 +47,17 @@ export async function GET(request: Request) {
         {
           method: 'GET',
           url: '/services/data/v59.0/tooling/query/?q=' + encodeURIComponent(`
-            SELECT Id, DeveloperName, LastModified
+            SELECT Id, DeveloperName, LastModifiedDate
             FROM AuraDefinitionBundle
+            WHERE ApiVersion > 0
             ORDER BY DeveloperName
           `),
           referenceId: 'aura'
         }
       ]
     }
+
+    console.log('Composite request:', JSON.stringify(compositeRequest, null, 2))
 
     const response = await fetch(
       `${instance_url}/services/data/v59.0/tooling/composite`,
@@ -71,12 +72,18 @@ export async function GET(request: Request) {
     )
 
     if (!response.ok) {
+      const errorData = await response.text()
+      console.error('Failed to fetch files:', errorData)
       throw new Error('Failed to fetch files')
     }
 
     const data = await response.json()
+    console.log('Composite response:', JSON.stringify(data, null, 2))
 
-    // Process and format the response with safe fallbacks
+    console.log('all lwcs', data.compositeResponse[2].body.records)
+    console.log('all aura', data.compositeResponse[3].body.records)
+
+    // Process and format the response
     const files = {
       apexClasses: (data.compositeResponse[0].body.records || []).map((record: any) => ({
         Id: record.Id,
@@ -90,95 +97,21 @@ export async function GET(request: Request) {
         Type: 'ApexTrigger',
         LastModifiedDate: record.LastModifiedDate
       })),
-      lwc: await Promise.all((data.compositeResponse[2].body.records || []).map(async (record: any) => {
-        try {
-          // Fetch component files
-          const filesResponse = await fetch(
-            `${instance_url}/services/data/v59.0/tooling/query/?q=` + 
-            encodeURIComponent(`
-              SELECT Id, FilePath, Format
-              FROM LightningComponentResource
-              WHERE LightningComponentBundleId = '${record.Id}'
-            `),
-            {
-              headers: { Authorization: authorization }
-            }
-          )
-          
-          if (!filesResponse.ok) {
-            throw new Error('Failed to fetch LWC resources')
-          }
-          
-          const filesData = await filesResponse.json()
-          
-          return {
-            Id: record.Id,
-            Name: record.DeveloperName,
-            Type: 'LightningComponentBundle',
-            LastModifiedDate: record.LastModified,
-            SubComponents: (filesData.records || []).map((file: any) => ({
-              Id: file.Id,
-              Name: file.FilePath.split('/').pop(),
-              Type: file.Format,
-              Path: file.FilePath
-            }))
-          }
-        } catch (error) {
-          console.error('Error fetching LWC resources:', error)
-          return {
-            Id: record.Id,
-            Name: record.DeveloperName,
-            Type: 'LightningComponentBundle',
-            LastModifiedDate: record.LastModified,
-            SubComponents: []
-          }
-        }
+      lwc: (data.compositeResponse[2].body.records || []).map((record: any) => ({
+        Id: record.Id,
+        Name: record.DeveloperName,
+        Type: 'LightningComponentBundle',
+        LastModifiedDate: record.LastModified
       })),
-      aura: await Promise.all((data.compositeResponse[3].body.records || []).map(async (record: any) => {
-        try {
-          // Fetch bundle files
-          const filesResponse = await fetch(
-            `${instance_url}/services/data/v59.0/tooling/query/?q=` + 
-            encodeURIComponent(`
-              SELECT Id, DefType, Format
-              FROM AuraDefinition
-              WHERE AuraDefinitionBundleId = '${record.Id}'
-            `),
-            {
-              headers: { Authorization: authorization }
-            }
-          )
-          
-          if (!filesResponse.ok) {
-            throw new Error('Failed to fetch Aura resources')
-          }
-          
-          const filesData = await filesResponse.json()
-          
-          return {
-            Id: record.Id,
-            Name: record.DeveloperName,
-            Type: 'AuraDefinitionBundle',
-            LastModifiedDate: record.LastModified,
-            SubComponents: (filesData.records || []).map((file: any) => ({
-              Id: file.Id,
-              Name: `${record.DeveloperName}.${file.DefType}`,
-              Type: file.Format
-            }))
-          }
-        } catch (error) {
-          console.error('Error fetching Aura resources:', error)
-          return {
-            Id: record.Id,
-            Name: record.DeveloperName,
-            Type: 'AuraDefinitionBundle',
-            LastModifiedDate: record.LastModified,
-            SubComponents: []
-          }
-        }
+      aura: (data.compositeResponse[3].body.records || []).map((record: any) => ({
+        Id: record.Id,
+        Name: record.DeveloperName,
+        Type: 'AuraDefinitionBundle',
+        LastModifiedDate: record.LastModified
       }))
     }
 
+    //console.log('Final processed files:', JSON.stringify(files, null, 2))
     return NextResponse.json(files)
   } catch (error) {
     console.error('Error:', error)
@@ -187,4 +120,4 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
-} 
+}

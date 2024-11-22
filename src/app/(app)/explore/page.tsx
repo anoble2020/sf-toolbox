@@ -28,6 +28,7 @@ export default function ExplorePage() {
 
   const fileId = searchParams.get('id')
   const fileType = searchParams.get('type')
+  const coverageParam = searchParams.get('coverage')
 
   // Reset state when URL params change
   useEffect(() => {
@@ -36,9 +37,19 @@ export default function ExplorePage() {
       setError(null)
       setLoading(false)
     } else {
-      fetchFile()
+      // Parse coverage data if it exists
+      let coverage
+      if (coverageParam) {
+        try {
+          coverage = JSON.parse(decodeURIComponent(coverageParam))
+        } catch (e) {
+          console.error('Failed to parse coverage data:', e)
+        }
+      }
+      
+      fetchFile(coverage)
     }
-  }, [fileId, fileType])
+  }, [fileId, fileType, coverageParam])
 
   const handleClose = () => {
     // Clear the file state
@@ -48,7 +59,7 @@ export default function ExplorePage() {
     router.replace('/explore')
   }
 
-  const fetchFile = async () => {
+  const fetchFile = async (coverage?: { coveredLines: number[], uncoveredLines: number[] }) => {
     if (!fileId) return
 
     try {
@@ -60,7 +71,7 @@ export default function ExplorePage() {
 
       const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
-      const objectType = fileType.toLowerCase()
+      const objectType = fileType?.toLowerCase()
       
       const response = await fetch(
         `/api/salesforce/${objectType}/${fileId}?instance_url=${encodeURIComponent(instance_url)}`,
@@ -77,15 +88,11 @@ export default function ExplorePage() {
 
       const data = await response.json()
       
-      // Get coverage from URL params if it exists
-      const coverageParam = searchParams.get('coverage')
-      const coverage = coverageParam ? JSON.parse(coverageParam) : null
-      
       setFile({
         Id: fileId,
         Name: data.Name || 'Unnamed File',
-        Body: data.Body,
-        Coverage: coverage // Will be null if no coverage data exists
+        Body: typeof data.Body === 'string' ? data.Body : JSON.stringify(data.Body, null, 2),
+        Coverage: coverage
       })
     } catch (error) {
       console.error('Error:', error)
@@ -135,15 +142,17 @@ export default function ExplorePage() {
     )
   }
 
-  const getLanguage = (type: string) => {
-    switch (type) {
-      case 'ApexClass':
-      case 'ApexTrigger':
+  const getLanguage = (type: string | null = '') => {
+    if (!type) return 'apex' // Default to apex if no type provided
+    
+    switch (type.toLowerCase()) {
+      case 'apexclass':
+      case 'apextrigger':
         return 'apex'
-      case 'LightningComponentBundle':
+      case 'lightningcomponentbundle':
         return 'javascript'
-      case 'AuraDefinitionBundle':
-        return 'javascript'
+      case 'auradefinitionbundle':
+        return 'html'
       default:
         return 'apex'
     }
@@ -180,6 +189,15 @@ export default function ExplorePage() {
           uncoveredLines={file.Coverage?.uncoveredLines}
         />
       </div>
+
+      <FileSelectionModal
+        open={isFileModalOpen}
+        onOpenChange={setIsFileModalOpen}
+        onFileSelect={(id, type) => {
+          router.push(`/explore?id=${id}&type=${type}`)
+          setIsFileModalOpen(false)
+        }}
+      />
     </div>
   )
 } 
