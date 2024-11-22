@@ -33,15 +33,15 @@ export async function GET(
           SELECT Id, Source, FilePath
           FROM LightningComponentResource
           WHERE LightningComponentBundleId = '${id}'
-          AND FilePath LIKE '%.js'
         `)
+        console.log('LWC Query:', endpoint)
         break
       case 'auradefinitionbundle':
         endpoint = `/services/data/v59.0/tooling/query/?q=` + encodeURIComponent(`
           SELECT Id, Source, DefType
           FROM AuraDefinition
           WHERE AuraDefinitionBundleId = '${id}'
-          AND DefType = 'COMPONENT'
+          AND DefType IN ('COMPONENT', 'CONTROLLER', 'HELPER', 'STYLE', 'DOCUMENTATION', 'RENDERER')
         `)
         break
       default:
@@ -65,25 +65,57 @@ export async function GET(
     const data = await response.json()
     console.log('Response data:', data)
 
-    // Format response based on type
     let result
     switch (objectType) {
       case 'apexclass':
       case 'apextrigger':
         result = {
           Name: data.Name,
-          Body: data.Body // Direct access to Body field from sobject endpoint
+          Body: data.Body,
+          files: [{
+            name: data.Name,
+            content: data.Body,
+            type: 'apex'
+          }]
         }
         break
       case 'lightningcomponentbundle':
+        if (!data.records?.length) {
+          throw new Error('No files found')
+        }
+        
+        const files = data.records.map((record: any) => {
+          console.log('Processing bundle file:', record.FilePath)
+          return {
+            name: record.FilePath.split('/').pop(),
+            content: record.Source,
+            type: getFileType(record.FilePath)
+          }
+        })
+
+        console.log('Processed bundle files:', files)
+
+        result = {
+          Name: files[0].name.split('.')[0],
+          Body: files[0].content,
+          files: files
+        }
+        break
       case 'auradefinitionbundle':
         if (!data.records?.length) {
-          throw new Error('No file found')
+          throw new Error('No files found')
         }
-        const record = data.records[0]
+        
+        const auraFiles = data.records.map((record: any) => ({
+          name: record.FilePath ? record.FilePath.split('/').pop() : `${record.DefType} File`,
+          content: record.Source,
+          type: getFileType(record.FilePath || record.DefType)
+        }))
+
         result = {
-          Name: record.FilePath ? record.FilePath.split('/').pop() : `${record.DefType} File`,
-          Body: record.Source
+          Name: auraFiles[0].name.split('.')[0],
+          Body: auraFiles[0].content,
+          files: auraFiles
         }
         break
     }
@@ -100,4 +132,15 @@ export async function GET(
       { status: 500 }
     )
   }
+}
+
+function getFileType(path: string): string {
+  if (path.endsWith('.js')) return 'javascript'
+  if (path.endsWith('.html')) return 'html'
+  if (path.endsWith('.css')) return 'css'
+  if (path.endsWith('.xml')) return 'xml'
+  if (path.endsWith('.design')) return 'xml'
+  if (path.endsWith('.svg')) return 'svg'
+  if (path.endsWith('.auradoc')) return 'xml'
+  return 'text'
 }

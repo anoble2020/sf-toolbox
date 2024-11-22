@@ -7,6 +7,7 @@ import { FileSelectionModal } from '@/components/FileSelectionModal'
 import { Button } from '@/components/ui/button'
 import { X, FolderOpen, Loader2 } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
+import { BundleViewer } from '@/components/BundleViewer'
 
 interface FileMetadata {
   Id: string
@@ -16,6 +17,11 @@ interface FileMetadata {
     coveredLines: number[]
     uncoveredLines: number[]
   }
+  files?: {
+    name: string
+    content: string
+    type: string
+  }[]
 }
 
 export default function ExplorePage() {
@@ -159,45 +165,41 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="h-full flex flex-col p-4">
-      <div className="flex justify-between items-center mb-4">
+    <div className="h-full flex flex-col">
+      <div className="flex justify-between items-center p-4 border-b">
         <div className="flex items-center gap-4">
-          <h1 className="text-xl font-semibold">{file.Name}</h1>
-          {/*<Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsFileModalOpen(true)}
-          >
-            <FolderOpen className="h-4 w-4 mr-2" />
-            Open File
-          </Button>*/}
+          <h1 className="text-xl font-semibold">{file?.Name}</h1>
+          <FileSelectionModal
+            onFileSelect={(id, type) => {
+              router.push(`/explore?id=${id}&type=${type}`)
+            }}
+          />
         </div>
         <Button
           variant="ghost"
-          size="sm"
-          onClick={handleClose}
+          size="icon"
+          onClick={() => {
+            router.push('/explore')
+            setFile(null)
+          }}
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
-      
-      <div className="flex-1">
-        <CodeViewer
-          content={file.Body}
-          language={getLanguage(fileType)}
-          coveredLines={file.Coverage?.coveredLines}
-          uncoveredLines={file.Coverage?.uncoveredLines}
-        />
-      </div>
 
-      <FileSelectionModal
-        open={isFileModalOpen}
-        onOpenChange={setIsFileModalOpen}
-        onFileSelect={(id, type) => {
-          router.push(`/explore?id=${id}&type=${type}`)
-          setIsFileModalOpen(false)
-        }}
-      />
+      <div className="flex-1 overflow-hidden">
+        {file?.files && file.files.length > 0 ? (
+          console.log('Rendering BundleViewer with files:', file.files) || // Debug log
+          <BundleViewer files={file.files} />
+        ) : (
+          <CodeViewer
+            content={file?.Body || ''}
+            language={getLanguage(fileType)}
+            coveredLines={file?.Coverage?.coveredLines}
+            uncoveredLines={file?.Coverage?.uncoveredLines}
+          />
+        )}
+      </div>
     </div>
   )
 } 

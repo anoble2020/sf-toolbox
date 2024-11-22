@@ -93,27 +93,29 @@ export function CodeViewer({
   })
 
   return (
-    <CodeMirror
-      value={stringContent}
-      height="100%"
-      theme={vscodeLightInit({
-        settings: {
-          background: '#ffffff',
-          foreground: '#000000',
-          selection: '#add6ff',
-          selectionMatch: '#add6ff',
-          lineHighlight: '#f0f0f0',
-        }
-      })}
-      editable={false}
-      extensions={[
-        getLanguageExtension(language),
-        EditorState.readOnly.of(true),
-        highlightSpecialChars(),
-        EditorState.tabSize.of(4),
-        coverageHighlightExtension
-      ]}
-      className="border rounded-md"
-    />
+    <div className="h-full overflow-auto">
+      <CodeMirror
+        value={stringContent}
+        height="100%"
+        theme={vscodeLightInit({
+          settings: {
+            background: '#ffffff',
+            foreground: '#000000',
+            selection: '#add6ff',
+            selectionMatch: '#add6ff',
+            lineHighlight: '#f0f0f0',
+          }
+        })}
+        editable={false}
+        extensions={[
+          getLanguageExtension(language),
+          EditorState.readOnly.of(true),
+          highlightSpecialChars(),
+          EditorState.tabSize.of(4),
+          coverageHighlightExtension
+        ]}
+        className="border rounded-md"
+      />
+    </div>
   )
 } 
