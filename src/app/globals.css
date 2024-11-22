@@ -66,3 +66,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+.cm-line.bg-green-50 {
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+.cm-line.bg-red-50 {
+  background-color: rgba(255, 0, 0, 0.1);
+}

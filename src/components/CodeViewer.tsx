@@ -6,7 +6,7 @@ import { javascript } from '@codemirror/lang-javascript'
 import { xml } from '@codemirror/lang-xml'
 import { vscodeLightInit } from '@uiw/codemirror-theme-vscode'
 import { EditorState } from '@codemirror/state'
-import { highlightSpecialChars } from '@codemirror/view'
+import { highlightSpecialChars, Decoration, DecorationSet, EditorView } from '@codemirror/view'
 
 interface CodeViewerProps {
   content: string
@@ -30,6 +30,45 @@ const getLanguageExtension = (language: string) => {
   }
 }
 
+// Create line decoration themes
+const coveredLineTheme = Decoration.line({
+  attributes: { class: "bg-green-50" }
+})
+
+const uncoveredLineTheme = Decoration.line({
+  attributes: { class: "bg-red-50" }
+})
+
+const createLineDecorations = (view: EditorView, coveredLines: number[], uncoveredLines: number[]) => {
+  const decorations: Range<Decoration>[] = []
+  const doc = view.state.doc
+
+  // Add decorations for covered lines
+  for (let lineNo of coveredLines) {
+    try {
+      const line = doc.line(lineNo)
+      decorations.push(coveredLineTheme.range(line.from))
+    } catch (e) {
+      console.warn(`Skipping invalid covered line number: ${lineNo}`)
+    }
+  }
+
+  // Add decorations for uncovered lines
+  for (let lineNo of uncoveredLines) {
+    try {
+      const line = doc.line(lineNo)
+      decorations.push(uncoveredLineTheme.range(line.from))
+    } catch (e) {
+      console.warn(`Skipping invalid uncovered line number: ${lineNo}`)
+    }
+  }
+
+  // Sort decorations by their 'from' position
+  decorations.sort((a, b) => a.from - b.from)
+
+  return Decoration.set(decorations, true) // true for "sorted" argument
+}
+
 export function CodeViewer({ 
   content, 
   language, 
@@ -47,24 +86,10 @@ export function CodeViewer({
     return null
   }
 
-  // Create decoration markers for coverage
-  const coverageMarkers = []
-  
-  if (coveredLines.length > 0) {
-    coverageMarkers.push({
-      from: 0,
-      to: content.length,
-      className: 'bg-green-50'
-    })
-  }
-  
-  if (uncoveredLines.length > 0) {
-    coverageMarkers.push({
-      from: 0,
-      to: content.length,
-      className: 'bg-red-50'
-    })
-  }
+  // Create the coverage highlighting extension
+  const coverageHighlightExtension = EditorView.decorations.of(view => {
+    return createLineDecorations(view, coveredLines, uncoveredLines)
+  })
 
   return (
     <CodeMirror
@@ -84,7 +109,8 @@ export function CodeViewer({
         getLanguageExtension(language),
         EditorState.readOnly.of(true),
         highlightSpecialChars(),
-        EditorState.tabSize.of(4)
+        EditorState.tabSize.of(4),
+        coverageHighlightExtension
       ]}
       className="border rounded-md"
     />

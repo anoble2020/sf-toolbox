@@ -168,7 +168,7 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: FileSel
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="flex-1 mt-4">
+          <ScrollArea className="flex-1 mt-4 h-[400px]">
             {Object.entries({
               apex: files.apexClasses,
               triggers: files.triggers,
