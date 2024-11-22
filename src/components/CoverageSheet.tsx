@@ -15,6 +15,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import { useRouter } from 'next/navigation'
 
 interface CoverageData {
   ApexClassOrTriggerId: string
@@ -33,6 +34,7 @@ interface CoverageSheetProps {
 }
 
 export function CoverageSheet({ open, onOpenChange }: CoverageSheetProps) {
+  const router = useRouter()
   const [coverage, setCoverage] = useState<CoverageData[]>([])
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -92,6 +94,15 @@ export function CoverageSheet({ open, onOpenChange }: CoverageSheetProps) {
     return acc
   }, [])
 
+  const handleClassClick = (classId: string, coverage: CoverageData) => {
+    // Navigate to explore page with coverage data
+    router.push(`/explore?id=${classId}&type=ApexClass&coverage=${JSON.stringify({
+      coveredLines: coverage.Coverage?.coveredLines || [],
+      uncoveredLines: coverage.Coverage?.uncoveredLines || []
+    })}`)
+    onOpenChange(false)
+  }
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent 
@@ -138,7 +149,11 @@ export function CoverageSheet({ open, onOpenChange }: CoverageSheetProps) {
                       : 0
 
                     return (
-                      <TableRow key={`${item.ApexClassName}-${item.ApexClassOrTriggerId}`}>
+                      <TableRow 
+                        key={`${item.ApexClassName}-${item.ApexClassOrTriggerId}`}
+                        className="cursor-pointer hover:bg-gray-50"
+                        onClick={() => handleClassClick(item.ApexClassOrTriggerId, item)}
+                      >
                         <TableCell className="font-medium">{item.ApexClassName}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-4">
