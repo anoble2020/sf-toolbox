@@ -5,7 +5,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 
 export const metadata: Metadata = {
-  title: "toolkit",
+  title: "sf toolbox",
   description: "Salesforce development tools",
   icons: {
     icon: [

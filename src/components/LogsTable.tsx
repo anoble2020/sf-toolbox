@@ -119,6 +119,7 @@ export function LogsTable({
   
   // Add a helper function to format duration
   const formatDuration = (ms?: number): string => {
+    console.log(`Formatting duration: ${ms}`)
     if (!ms) return '-'
     
     if (ms < 1000) {

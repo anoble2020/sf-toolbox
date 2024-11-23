@@ -2,11 +2,10 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
-import { Search, LineChart, Bug, Code, Workflow, Database } from "lucide-react"
+import { Search, LineChart, Bug, Code, Workflow, Database, MousePointerClick } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Timeline } from "@/components/Timeline"
 import { TraceViewer } from "@/components/TraceViewer"
 import { LogReplay } from "@/components/LogReplay"
 import { formatLogs } from '@/lib/logFormatter'

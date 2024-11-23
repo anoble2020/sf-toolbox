@@ -163,6 +163,32 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
   try {
     const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
+    // First check for existing trace flags
+    const query = `
+      SELECT Id, ExpirationDate 
+      FROM TraceFlag 
+      WHERE TracedEntityId = '${userId}' 
+      AND ExpirationDate > ${new Date().toISOString()}
+      LIMIT 1
+    `
+
+    const existingFlagsResponse = await fetch(
+      `/api/salesforce/tooling/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+      }
+    )
+
+    const existingFlags = await existingFlagsResponse.json()
+
+    // If active trace flag exists, return early
+    if (existingFlags.records && existingFlags.records.length > 0) {
+      console.log('Active trace flag already exists:', existingFlags.records[0])
+      return
+    }
+
     let queriedDebugLevelId;
     if(!debugLevelId) {
         // First, get the SFDC_DevConsole debug level ID using Tooling API
