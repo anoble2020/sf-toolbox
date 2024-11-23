@@ -1,10 +1,9 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { useRouter } from "next/navigation"
+import Image from 'next/image'
 
 export default function AuthPage() {
-  const router = useRouter()
   
   const SF_CLIENT_ID = process.env.NEXT_PUBLIC_SF_CLIENT_ID
   const SF_REDIRECT_URI = "http://localhost:3000/auth/callback"
@@ -24,27 +23,38 @@ export default function AuthPage() {
     window.location.href = authUrl
   }
 
+  
+
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-      <div className="mb-4">
-        <img src="/icon_128_purp.png" alt="toolkit" className="w-16 h-16" />
-      </div>
-      <h1 className="text-2xl font-semibold mb-8">apex toolkit</h1>
-      <div className="flex gap-4">
-      <Button 
-        size="lg"
-        onClick={handleLogin}
-        className="font-medium"
+    <div className="flex flex-col items-center justify-center min-h-screen"
       >
-        Sandbox
-      </Button>
-      <Button 
-        size="lg"
-        onClick={handleLogin}
-        className="font-medium"
-      >
-        Production
-      </Button>
+      <div className="w-full max-w-md space-y-8">
+        <div className="flex flex-col items-center">
+          <Image
+            src="/icon_128_purp.png"
+            alt="SF Toolkit Logo"
+            width={128}
+            height={128}
+            priority
+          />
+          <h1 className="text-2xl font-semibold mb-8">sf toolkit</h1>
+          <div className="flex gap-4">
+            <Button 
+              size="lg"
+              onClick={handleLogin}
+              className="font-medium"
+            >
+              Sandbox
+            </Button>
+            <Button 
+              size="lg"
+              onClick={handleLogin}
+              className="font-medium"
+            >
+              Production
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   )

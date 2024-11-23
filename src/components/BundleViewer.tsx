@@ -15,8 +15,8 @@ export function BundleViewer({ files }: BundleViewerProps) {
   console.log('BundleViewer received files:', files)
 
   return (
-    <Tabs defaultValue={files[0]?.name} className="h-full flex flex-col">
-      <div className="border-b px-4">
+    <Tabs defaultValue={files[0]?.name} className="h-full flex flex-col mt-2">
+      <div className="px-4">
         <TabsList>
           {files.map((file) => {
             console.log('Rendering tab for file:', file.name)
@@ -24,7 +24,6 @@ export function BundleViewer({ files }: BundleViewerProps) {
               <TabsTrigger 
                 key={file.name} 
                 value={file.name}
-                className="data-[state=active]:border-b-2 data-[state=active]:border-primary"
               >
                 {file.name}
               </TabsTrigger>

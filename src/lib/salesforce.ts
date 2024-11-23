@@ -163,6 +163,7 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
   try {
     const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
+    let queriedDebugLevelId;
     if(!debugLevelId) {
         // First, get the SFDC_DevConsole debug level ID using Tooling API
         const debugLevelResponse = await fetch(
@@ -193,7 +194,7 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
         throw new Error('Debug level not found')
         }
 
-        const debugLevelId = debugLevelData.records[0].Id
+        queriedDebugLevelId = debugLevelData.records[0].Id
         console.log('Debug level ID:', debugLevelId)
     }
 
@@ -205,7 +206,7 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
         LogType: logType ? logType : 'DEVELOPER_LOG',
         StartDate: now.toISOString(),
         ExpirationDate: expiration.toISOString(),
-        DebugLevelId: debugLevelId,
+        DebugLevelId: debugLevelId ? debugLevelId : queriedDebugLevelId,
         TracedEntityId: userId,
     }
 

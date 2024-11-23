@@ -98,7 +98,8 @@ export default function ExplorePage() {
         Id: fileId,
         Name: data.Name || 'Unnamed File',
         Body: typeof data.Body === 'string' ? data.Body : JSON.stringify(data.Body, null, 2),
-        Coverage: coverage
+        Coverage: coverage,
+        files: data.files
       })
     } catch (error) {
       console.error('Error:', error)
@@ -188,6 +189,7 @@ export default function ExplorePage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
+        {console.log('file', file)}
         {file?.files && file.files.length > 0 ? (
           console.log('Rendering BundleViewer with files:', file.files) || // Debug log
           <BundleViewer files={file.files} />
