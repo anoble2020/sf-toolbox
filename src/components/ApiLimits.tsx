@@ -1,12 +1,23 @@
+"use client"
+
 import { useApiLimits } from '@/lib/store'
 import { CircleDashed } from 'lucide-react'
+import { useEffect } from 'react'
 
 export function ApiLimits() {
-  const { limits } = useApiLimits()
-    
+  // Subscribe to specific slice of the store
+  const limits = useApiLimits((state) => state.limits)
+  
+  useEffect(() => {
+    console.log('ApiLimits limits changed:', limits)
+  }, [limits])
+  
   if (!limits.used && !limits.total) {
+    console.log('ApiLimits rendering null - no limits')
     return null
   }
+  
+  console.log('ApiLimits rendering with limits:', limits)
   
   const usagePercent = (limits.used / limits.total) * 100
   const isHighUsage = usagePercent > 80

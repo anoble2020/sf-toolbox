@@ -15,6 +15,9 @@ import {
 import { ExternalLink, Copy } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
 import { toast } from 'sonner'
+import { useApiLimits } from '@/lib/store'
+import { updateApiLimitsFromHeaders } from '@/lib/salesforce'
+
 interface QueryResult {
   records: Record<string, any>[]
   totalSize: number
@@ -34,6 +37,7 @@ export default function QueryPage() {
   const [orgDomain, setOrgDomain] = useState('')
   const [sortConfig, setSortConfig] = useState<SortConfig>({ column: null, direction: 'asc' })
   const [filterValue, setFilterValue] = useState('')
+  const store = useApiLimits()
 
   const addIdToQuery = (query: string): string => {
     // Remove any leading/trailing whitespace
@@ -91,13 +95,22 @@ export default function QueryPage() {
         }
       )
 
+      updateApiLimitsFromHeaders(response.headers)
+
       if (!response.ok) {
         const error = await response.json()
+        // Check if it's a Salesforce error array
+        if (Array.isArray(error) && error[0]?.message) {
+          toast.error(error[0].message)
+        } else {
+          toast.error(error.message || 'Failed to execute query')
+        }
         throw new Error(error.message || 'Failed to execute query')
       }
 
       const data = await response.json()
       setResults(data)
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {

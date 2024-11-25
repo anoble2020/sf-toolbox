@@ -1,3 +1,4 @@
+import { salesforceApi } from '@/lib/api'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -23,7 +24,7 @@ export async function GET(request: Request) {
     const url = `${instance_url}/services/data/v59.0/query?q=${encodeURIComponent(q)}`
     console.log('Fetching from Salesforce:', url)
 
-    const response = await fetch(url, {
+    const response = await salesforceApi(url, {
       headers: {
         'Authorization': authorization
       }
@@ -37,7 +38,13 @@ export async function GET(request: Request) {
       return NextResponse.json(data, { status: response.status })
     }
 
-    return NextResponse.json(data)
+    const limitInfo = response.headers.get('Sforce-Limit-Info')
+    const responseJson = NextResponse.json(data)
+    if (limitInfo) {
+      responseJson.headers.set('Sforce-Limit-Info', limitInfo)
+    }
+
+    return responseJson
   } catch (error) {
     console.error('Error querying Salesforce:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

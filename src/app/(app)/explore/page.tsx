@@ -24,17 +24,82 @@ interface FileMetadata {
   }[]
 }
 
+interface FileData {
+  apexClasses: FileItem[]
+  triggers: FileItem[]
+  lwc: FileItem[]
+  aura: FileItem[]
+  lastFetched: number
+}
+
+const CACHE_DURATION = 1000 * 60 * 5 // 5 minutes cache
+
+const fetchFiles = async () => {
+  const refreshToken = localStorage.getItem('sf_refresh_token')
+  if (!refreshToken) {
+    throw new Error('No refresh token found')
+  }
+
+  const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+
+  const response = await fetch(
+    `/api/salesforce/files?instance_url=${encodeURIComponent(instance_url)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${access_token}`,
+      },
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch files')
+  }
+
+  const data = await response.json()
+  return {
+    ...data,
+    lastFetched: Date.now()
+  }
+}
+
 export default function ExplorePage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isFileModalOpen, setIsFileModalOpen] = useState(false)
   const [file, setFile] = useState<FileMetadata | null>(null)
+  const [files, setFiles] = useState<FileData | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fileId = searchParams.get('id')
   const fileType = searchParams.get('type')
   const coverageParam = searchParams.get('coverage')
+
+  useEffect(() => {
+    const loadFiles = async () => {
+      try {
+        // Check cache first
+        const cachedFiles = localStorage.getItem('cached_files')
+        if (cachedFiles) {
+          const parsed = JSON.parse(cachedFiles)
+          if (Date.now() - parsed.lastFetched < CACHE_DURATION) {
+            setFiles(parsed)
+            return
+          }
+        }
+
+        // Fetch fresh data if cache is expired or doesn't exist
+        const freshFiles = await fetchFiles()
+        setFiles(freshFiles)
+        localStorage.setItem('cached_files', JSON.stringify(freshFiles))
+      } catch (error) {
+        console.error('Error:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch files')
+      }
+    }
+
+    loadFiles()
+  }, [])
 
   // Reset state when URL params change
   useEffect(() => {

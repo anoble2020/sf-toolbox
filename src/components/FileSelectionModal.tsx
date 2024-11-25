@@ -10,6 +10,7 @@ interface FileSelectionModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onFileSelect: (fileId: string, fileType: string) => void
+  files: Record<string, FileItem[]>;
 }
 
 interface FileItem {
@@ -81,9 +82,12 @@ function FileTreeItem({ item, onSelect }: FileTreeItemProps) {
   )
 }
 
-export function FileSelectionModal({ open, onOpenChange, onFileSelect }: FileSelectionModalProps) {
+export function FileSelectionModal({ 
+  open, 
+  onOpenChange, 
+  onFileSelect
+}: Omit<FileSelectionModalProps, 'files'>) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [loading, setLoading] = useState(false)
   const [files, setFiles] = useState<Record<string, FileItem[]>>({
     apexClasses: [],
     triggers: [],
@@ -91,38 +95,19 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: FileSel
     aura: []
   })
 
-  const fetchFiles = async () => {
-    try {
-      setLoading(true)
-      const refreshToken = localStorage.getItem('sf_refresh_token')
-      if (!refreshToken) throw new Error('No refresh token found')
-
-      const { access_token, instance_url } = await refreshAccessToken(refreshToken)
-
-      const response = await fetch(
-        `/api/salesforce/files?instance_url=${encodeURIComponent(instance_url)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-        }
-      )
-
-      if (!response.ok) throw new Error('Failed to fetch files')
-      const data = await response.json()
-      setFiles(data)
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    if (open) {
-      fetchFiles()
+    const cachedFiles = localStorage.getItem('cached_files')
+    if (cachedFiles) {
+      console.log('cachedFiles', Object.keys(cachedFiles))
+      const parsed = JSON.parse(cachedFiles)
+      setFiles({
+        apexClasses: parsed.apexClasses || [],
+        triggers: parsed.triggers || [],
+        lwc: parsed.lwc || [],
+        aura: parsed.aura || []
+      })
     }
-  }, [open])
+  }, [open]) // Only update when modal opens
 
   const filterFiles = (items: FileItem[]) => {
     if (!searchQuery) return items
@@ -148,9 +133,9 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: FileSel
           />
         </div>
 
-        <Tabs defaultValue="apex" className="flex-1">
+        <Tabs defaultValue="" className="flex-1">
           <TabsList>
-            <TabsTrigger value="apex">
+            <TabsTrigger value="apexClasses">
               <FileCode className="w-4 h-4 mr-2" />
               Apex Classes
             </TabsTrigger>
@@ -169,12 +154,7 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: FileSel
           </TabsList>
 
           <ScrollArea className="flex-1 mt-4 h-[400px]">
-            {Object.entries({
-              apex: files.apexClasses,
-              triggers: files.triggers,
-              lwc: files.lwc,
-              aura: files.aura
-            }).map(([type, items]) => (
+            {Object.entries(files).map(([type, items]) => (
               <TabsContent key={type} value={type} className="m-0">
                 <div className="space-y-2">
                   {filterFiles(items).map((item) => (

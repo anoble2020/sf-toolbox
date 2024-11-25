@@ -1,5 +1,5 @@
 import { refreshAccessToken } from './auth'
-import { useApiLimits } from './store'
+import { apiLimitsActions } from './store'
 
 interface SalesforceResponse<T> {
   records: T[]
@@ -59,7 +59,7 @@ export function updateApiLimitsFromHeaders(headers: Headers) {
   if (match) {
     const [, used, total] = match
     console.log('Parsed limits:', { used, total })
-    useApiLimits.getState().updateLimits(Number(used), Number(total))
+    apiLimitsActions.updateLimits(Number(used), Number(total))
   } else {
     console.log('Could not parse limit info:', limitInfo)
   }
@@ -251,6 +251,8 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
         body: JSON.stringify(requestBody)
       }
     )
+
+    updateApiLimitsFromHeaders(response.headers)
 
     if (!response.ok) {
       const errorData = await response.json()
@@ -446,6 +448,8 @@ export const queryUsers = async (): Promise<SalesforceUser[]> => {
       }
     )
 
+    updateApiLimitsFromHeaders(response.headers)
+
     const data = await response.json()
     return data.records || []
   } catch (error) {
@@ -478,6 +482,8 @@ export const queryDebugLevels = async (): Promise<DebugLevel[]> => {
         },
       }
     )
+
+    updateApiLimitsFromHeaders(response.headers)
 
     const data = await response.json()
     return data.records || []
