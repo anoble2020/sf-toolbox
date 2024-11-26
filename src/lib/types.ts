@@ -1,6 +1,6 @@
 export interface SavedCodeBlock {
-  id: string;
-  name: string;
-  code: string;
-  lastModified: string;
-} 
+    id: string
+    name: string
+    code: string
+    lastModified: string
+}
