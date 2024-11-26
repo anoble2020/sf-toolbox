@@ -17,6 +17,7 @@ interface FileItem {
   Id: string
   Name: string
   Type: string
+  Managed: boolean
   LastModifiedDate: string
   SubComponents?: FileItem[]
 }
@@ -98,7 +99,6 @@ export function FileSelectionModal({
   useEffect(() => {
     const cachedFiles = localStorage.getItem('cached_files')
     if (cachedFiles) {
-      console.log('cachedFiles', Object.keys(cachedFiles))
       const parsed = JSON.parse(cachedFiles)
       setFiles({
         apexClasses: parsed.apexClasses || [],
@@ -162,6 +162,7 @@ export function FileSelectionModal({
                       key={item.Id}
                       item={item}
                       onSelect={onFileSelect}
+                      //disabled={item.managed = false ? true : false}
                     />
                   ))}
                 </div>

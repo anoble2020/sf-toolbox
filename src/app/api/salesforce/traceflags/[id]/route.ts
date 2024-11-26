@@ -1,91 +1,120 @@
-import { NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 
 export async function PATCH(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { searchParams } = new URL(request.url)
-  const instance_url = searchParams.get('instance_url')
-  const id = params.id
-  
-  if (!instance_url) {
-    return NextResponse.json({ error: 'Missing instance URL' }, { status: 400 })
-  }
-
-  const authorization = request.headers.get('authorization')
-  if (!authorization) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   try {
-    const body = await request.json()
-    
+    const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const instance_url = searchParams.get('instance_url')
+
+    console.log('Renewing trace flag:', { id, instance_url })
+
+    if (!instance_url) {
+      console.error('Missing instance_url')
+      return new Response('Missing instance_url', { status: 400 })
+    }
+
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader) {
+      console.error('Unauthorized')
+      return new Response('Unauthorized', { status: 401 })
+    }
+
+    const newExpirationDate = new Date(Date.now() + (12 * 60 * 60 * 1000)).toISOString()
+
     const response = await fetch(
-      `${instance_url}/services/data/v59.0/tooling/sobjects/TraceFlag/${id}`,
+      `${instance_url}/services/data/v61.0/tooling/sobjects/TraceFlag/${id}`,
       {
         method: 'PATCH',
         headers: {
-          'Authorization': authorization,
+          'Authorization': authHeader,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({
+          ExpirationDate: newExpirationDate,
+          StartDate: new Date(Date.now()).toISOString()
+        })
       }
     )
 
     if (!response.ok) {
       const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
+      console.error('Failed to renew trace flag:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: error
+      })
+      return new Response(JSON.stringify(error), { 
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
-    return new NextResponse(null, { status: 204 })
+    return new Response(null, { status: 204 })
   } catch (error) {
-    console.error('Error updating trace flag:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' }, 
-      { status: 500 }
+    console.error('Error renewing trace flag:', error)
+    return new Response(
+      JSON.stringify({ error: 'Failed to renew trace flag' }), 
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     )
   }
 }
 
 export async function DELETE(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const { searchParams } = new URL(request.url)
-  const instance_url = searchParams.get('instance_url')
-  const id = params.id
-  
-  if (!instance_url) {
-    return NextResponse.json({ error: 'Missing instance URL' }, { status: 400 })
-  }
-
-  const authorization = request.headers.get('authorization')
-  if (!authorization) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   try {
+    const id = await params.id
+    const { searchParams } = new URL(request.url)
+    const instance_url = searchParams.get('instance_url')
+
+    if (!instance_url) {
+      return new Response('Missing instance_url', { status: 400 })
+    }
+
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response('Unauthorized', { status: 401 })
+    }
+
     const response = await fetch(
       `${instance_url}/services/data/v59.0/tooling/sobjects/TraceFlag/${id}`,
       {
         method: 'DELETE',
         headers: {
-          'Authorization': authorization
+          'Authorization': authHeader
         }
       }
     )
 
     if (!response.ok) {
       const error = await response.json()
-      return NextResponse.json(error, { status: response.status })
+      console.error('Failed to delete trace flag:', {
+        status: response.status,
+        statusText: response.statusText,
+        error: error
+      })
+      return new Response(JSON.stringify(error), { 
+        status: response.status,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
-    return new NextResponse(null, { status: 204 })
+    return new Response(null, { status: 204 })
   } catch (error) {
     console.error('Error deleting trace flag:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' }, 
-      { status: 500 }
+    return new Response(
+      JSON.stringify({ error: 'Failed to delete trace flag' }), 
+      { 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
+      }
     )
   }
 }

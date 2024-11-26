@@ -5,10 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { CodeViewer } from '@/components/CodeViewer'
 import { FileSelectionModal } from '@/components/FileSelectionModal'
 import { Button } from '@/components/ui/button'
-import { X, FolderOpen, Loader2 } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
 import { BundleViewer } from '@/components/BundleViewer'
-
+import { CACHE_DURATIONS } from '@/lib/constants'
 interface FileMetadata {
   Id: string
   Name: string
@@ -31,8 +31,6 @@ interface FileData {
   aura: FileItem[]
   lastFetched: number
 }
-
-const CACHE_DURATION = 1000 * 60 * 5 // 5 minutes cache
 
 const fetchFiles = async () => {
   const refreshToken = localStorage.getItem('sf_refresh_token')
@@ -75,51 +73,62 @@ export default function ExplorePage() {
   const fileType = searchParams.get('type')
   const coverageParam = searchParams.get('coverage')
 
-  useEffect(() => {
-    const loadFiles = async () => {
-      try {
-        // Check cache first
-        const cachedFiles = localStorage.getItem('cached_files')
-        if (cachedFiles) {
-          const parsed = JSON.parse(cachedFiles)
-          if (Date.now() - parsed.lastFetched < CACHE_DURATION) {
-            setFiles(parsed)
-            return
-          }
-        }
-
-        // Fetch fresh data if cache is expired or doesn't exist
-        const freshFiles = await fetchFiles()
-        setFiles(freshFiles)
-        localStorage.setItem('cached_files', JSON.stringify(freshFiles))
-      } catch (error) {
-        console.error('Error:', error)
-        setError(error instanceof Error ? error.message : 'Failed to fetch files')
-      }
-    }
-
-    loadFiles()
-  }, [])
-
-  // Reset state when URL params change
+  // Combine the file fetching and coverage parsing into a single effect
   useEffect(() => {
     if (!fileId || !fileType) {
       setFile(null)
       setError(null)
       setLoading(false)
-    } else {
-      // Parse coverage data if it exists
-      let coverage
-      if (coverageParam) {
-        try {
-          coverage = JSON.parse(decodeURIComponent(coverageParam))
-        } catch (e) {
-          console.error('Failed to parse coverage data:', e)
-        }
-      }
-      
-      fetchFile(coverage)
+      return
     }
+
+    let coverage: { coveredLines: number[], uncoveredLines: number[] } | undefined
+
+    if (coverageParam) {
+      try {
+        coverage = JSON.parse(decodeURIComponent(coverageParam))
+      } catch (e) {
+        console.error('Failed to parse coverage data:', e)
+      }
+    }
+
+    // Only fetch if we have valid params
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const refreshToken = localStorage.getItem('sf_refresh_token')
+        if (!refreshToken) throw new Error('No refresh token found')
+
+        const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+        const objectType = fileType.toLowerCase()
+        
+        const response = await fetch(
+          `/api/salesforce/${objectType}/${fileId}?instance_url=${encodeURIComponent(instance_url)}`,
+          {
+            headers: { Authorization: `Bearer ${access_token}` },
+          }
+        )
+
+        if (!response.ok) throw new Error('Failed to fetch file')
+
+        const data = await response.json()
+        
+        setFile({
+          Id: fileId,
+          Name: data.Name || 'Unnamed File',
+          Body: typeof data.Body === 'string' ? data.Body : JSON.stringify(data.Body, null, 2),
+          Coverage: coverage,
+          files: data.files
+        })
+      } catch (error) {
+        console.error('Error:', error)
+        setError(error instanceof Error ? error.message : 'Failed to fetch file')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [fileId, fileType, coverageParam])
 
   const handleClose = () => {
@@ -130,49 +139,13 @@ export default function ExplorePage() {
     router.replace('/explore')
   }
 
-  const fetchFile = async (coverage?: { coveredLines: number[], uncoveredLines: number[] }) => {
-    if (!fileId) return
-
-    try {
-      setLoading(true)
-      const refreshToken = localStorage.getItem('sf_refresh_token')
-      if (!refreshToken) {
-        throw new Error('No refresh token found')
-      }
-
-      const { access_token, instance_url } = await refreshAccessToken(refreshToken)
-
-      const objectType = fileType?.toLowerCase()
-      
-      const response = await fetch(
-        `/api/salesforce/${objectType}/${fileId}?instance_url=${encodeURIComponent(instance_url)}`,
-        {
-          headers: {
-            Authorization: `Bearer ${access_token}`,
-          },
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch file')
-      }
-
-      const data = await response.json()
-      
-      setFile({
-        Id: fileId,
-        Name: data.Name || 'Unnamed File',
-        Body: typeof data.Body === 'string' ? data.Body : JSON.stringify(data.Body, null, 2),
-        Coverage: coverage,
-        files: data.files
-      })
-    } catch (error) {
-      console.error('Error:', error)
-      setError(error instanceof Error ? error.message : 'Failed to fetch file')
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Add logging for render phase
+  console.log('ExplorePage render:', {
+    file: file?.Id,
+    coverage: file?.Coverage,
+    loading,
+    error
+  })
 
   if (loading) {
     return (
@@ -222,9 +195,8 @@ export default function ExplorePage() {
       case 'apextrigger':
         return 'apex'
       case 'lightningcomponentbundle':
-        return 'javascript'
       case 'auradefinitionbundle':
-        return 'html'
+        return 'javascript'
       default:
         return 'apex'
     }
@@ -254,16 +226,15 @@ export default function ExplorePage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        {console.log('file', file)}
         {file?.files && file.files.length > 0 ? (
           console.log('Rendering BundleViewer with files:', file.files) || // Debug log
           <BundleViewer files={file.files} />
         ) : (
           <CodeViewer
-            content={file?.Body || ''}
+            content={file?.Body ?? ''}
             language={getLanguage(fileType)}
-            coveredLines={file?.Coverage?.coveredLines}
-            uncoveredLines={file?.Coverage?.uncoveredLines}
+            coveredLines={file?.Coverage?.coveredLines ?? []}
+            uncoveredLines={file?.Coverage?.uncoveredLines ?? []}
           />
         )}
       </div>

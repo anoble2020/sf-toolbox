@@ -4,6 +4,9 @@ export async function GET(
   request: Request,
   { params }: { params: { objectType: string; id: string } }
 ) {
+  const objectType = await params.objectType
+  const id = await params.id
+
   try {
     const { searchParams } = new URL(request.url)
     const instance_url = searchParams.get('instance_url')
@@ -15,9 +18,6 @@ export async function GET(
         { status: 400 }
       )
     }
-
-    const objectType = (await params.objectType).toLowerCase()
-    const id = await params.id
 
     let endpoint: string
     

@@ -19,12 +19,14 @@ import {
   ChevronLeft, 
   ChevronRight,
   Trash2,
-  LineChart 
+  LineChart,
+  BarChart2
 } from "lucide-react"
 import { SelectTestMethodsModal } from '@/components/SelectTestMethodsModal'
 import { TestResultsTable } from '@/components/TestResultsTable'
 import { CoverageSheet } from '@/components/CoverageSheet'
 import { toast } from 'sonner'
+import { CACHE_DURATIONS } from '@/lib/constants'
 
 interface TestClass {
   Id: string
@@ -57,6 +59,17 @@ export default function TestsPage() {
 
   const fetchTestClasses = async () => {
     try {
+
+        const cachedData = localStorage.getItem('cached_test_classes')
+        if (cachedData) {
+          const parsed = JSON.parse(cachedData)
+          if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
+            setTestClasses(parsed.classes)
+            setLoading(false)
+            return
+          }
+        }
+
       const refreshToken = localStorage.getItem('sf_refresh_token')
       if (!refreshToken) {
         throw new Error('No refresh token found')
@@ -79,6 +92,13 @@ export default function TestsPage() {
 
       const data = await response.json()
       setTestClasses(data)
+
+      const cacheData = {
+        classes: data,
+        lastFetched: Date.now()
+      }
+      localStorage.setItem('cached_test_classes', JSON.stringify(cacheData))
+
     } catch (error) {
       console.error('Error:', error)
       setError(error instanceof Error ? error.message : 'An error occurred')
@@ -303,6 +323,15 @@ export default function TestsPage() {
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-semibold">Test Classes</h2>
           <div className="flex items-center gap-2">
+          <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsCoverageOpen(true)}
+              >
+                <BarChart2 className="h-4 w-4 mr-2" />
+                View Coverage
+              </Button>
+
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -383,28 +412,20 @@ export default function TestsPage() {
 
       {/* Test Results Section - Bottom Half */}
       <div className="h-1/2 flex flex-col">
-        {testRuns.length > 0 && (
+        {(
           <>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Test Results</h2>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsCoverageOpen(true)}
-                >
-                  <LineChart className="h-4 w-4 mr-2" />
-                  View Coverage
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={clearTestResults}
-                  className="text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Clear Results
-                </Button>
+            <div className="flex items-center gap-4 mb-4">
+              <div className="relative flex-1 max-w-sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearTestResults}
+                className="text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear Results
+              </Button>
+
               </div>
             </div>
             <div className="flex-1 overflow-auto border rounded-md">

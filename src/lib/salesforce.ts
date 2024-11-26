@@ -340,6 +340,7 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
 }
 
 export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
+  console.log('Renewing trace flag with id:', traceFlagId)
   const refreshToken = localStorage.getItem('sf_refresh_token')
   
   if (!refreshToken) {
@@ -352,6 +353,8 @@ export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
     // Calculate new expiration date (8 hours from now)
     const expirationDate = new Date()
     expirationDate.setHours(expirationDate.getHours() + 8)
+
+    console.log('Renewing trace flag with expiration date:', expirationDate.toISOString())
 
     const response = await fetch(
       `/api/salesforce/traceflags/${traceFlagId}?instance_url=${encodeURIComponent(instance_url)}`,
@@ -366,6 +369,8 @@ export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
         })
       }
     )
+
+    console.log('Renewing trace flag response:', response)
 
     updateApiLimitsFromHeaders(response.headers)
 

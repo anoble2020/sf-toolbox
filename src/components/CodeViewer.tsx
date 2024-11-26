@@ -6,7 +6,7 @@ import { javascript } from '@codemirror/lang-javascript'
 import { xml } from '@codemirror/lang-xml'
 import { vscodeLightInit } from '@uiw/codemirror-theme-vscode'
 import { EditorState } from '@codemirror/state'
-import { highlightSpecialChars, Decoration, DecorationSet, EditorView } from '@codemirror/view'
+import { highlightSpecialChars, ViewPlugin, Decoration, DecorationSet } from '@codemirror/view'
 
 interface CodeViewerProps {
   content: string
@@ -29,43 +29,47 @@ const getLanguageExtension = (language: string) => {
   }
 }
 
-// Create line decoration themes
-const coveredLineTheme = Decoration.line({
-  attributes: { class: "bg-green-50" }
+// Define the decoration styles
+const coveredLineStyle = Decoration.line({
+  attributes: { style: "background-color: rgba(34, 197, 94, 0.1) !important;" }
 })
 
-const uncoveredLineTheme = Decoration.line({
-  attributes: { class: "bg-red-50" }
+const uncoveredLineStyle = Decoration.line({
+  attributes: { style: "background-color: rgba(239, 68, 68, 0.1) !important;" }
 })
 
-const createLineDecorations = (view: EditorView, coveredLines: number[] = [], uncoveredLines: number[] = []) => {
-  const decorations: Range<Decoration>[] = []
-  const doc = view.state.doc
+function coverageHighlightPlugin(coveredLines: number[] = [], uncoveredLines: number[] = []) {
+  return ViewPlugin.fromClass(class {
+    decorations: DecorationSet
 
-  // Add decorations for covered lines
-  for (let lineNo of coveredLines) {
-    try {
-      const line = doc.line(lineNo)
-      decorations.push(coveredLineTheme.range(line.from))
-    } catch (e) {
-      console.warn(`Skipping invalid covered line number: ${lineNo}`)
+    constructor(view: any) {
+      this.decorations = this.buildDecorations(view)
     }
-  }
 
-  // Add decorations for uncovered lines
-  for (let lineNo of uncoveredLines) {
-    try {
-      const line = doc.line(lineNo)
-      decorations.push(uncoveredLineTheme.range(line.from))
-    } catch (e) {
-      console.warn(`Skipping invalid uncovered line number: ${lineNo}`)
+    buildDecorations(view: any) {
+      const builder: any[] = []
+      
+      for (let i = 1; i <= view.state.doc.lines; i++) {
+        const line = view.state.doc.line(i)
+        if (coveredLines.includes(i)) {
+          builder.push(coveredLineStyle.range(line.from))
+        } else if (uncoveredLines.includes(i)) {
+          builder.push(uncoveredLineStyle.range(line.from))
+        }
+      }
+      
+      return Decoration.set(builder)
     }
-  }
 
-  // Sort decorations by their 'from' position
-  decorations.sort((a, b) => a.from - b.from)
-
-  return Decoration.set(decorations, true)
+    update(update: any) {
+      if (update.docChanged || update.viewportChanged) {
+        this.decorations = this.buildDecorations(update.view)
+      }
+    }
+  }, {
+    decorations: v => v.decorations,
+    provide: () => EditorState.allowMultipleSelections.of(true)
+  })
 }
 
 export function CodeViewer({ 
@@ -80,17 +84,9 @@ export function CodeViewer({
     setMounted(true)
   }, [])
 
-  if (!mounted) {
-    return null
-  }
+  if (!mounted) return null
 
-  // Ensure content is a string
   const stringContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
-
-  // Create the coverage highlighting extension
-  const coverageHighlightExtension = EditorView.decorations.of(view => {
-    return createLineDecorations(view, coveredLines, uncoveredLines)
-  })
 
   return (
     <div className="h-full overflow-auto">
@@ -112,7 +108,7 @@ export function CodeViewer({
           EditorState.readOnly.of(true),
           highlightSpecialChars(),
           EditorState.tabSize.of(4),
-          coverageHighlightExtension
+          coverageHighlightPlugin(coveredLines, uncoveredLines)
         ]}
         className="border rounded-md"
       />

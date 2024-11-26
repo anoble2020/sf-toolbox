@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import { Input } from "@/components/ui/input"
-import { Search, LineChart, Bug, Code, Workflow, Database, MousePointerClick } from "lucide-react"
+import { Search, LineChart, Bug, Code, Workflow, Database, MousePointerClick, Scale, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
@@ -20,7 +20,7 @@ interface CollapsibleLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DEBUG' | 'DML';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DEBUG' | 'DML' | 'VALIDATION';
   isCollapsible?: boolean;
   nestLevel?: number;
   isSelected?: boolean;
@@ -145,6 +145,19 @@ const renderDmlLine = (content: string) => {
   );
 };
 
+const renderValidationLine = (content: string) => {
+  const [timestamp, ...rest] = content.split(' | ');
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#9333ea]">
+        <Scale className="w-4 h-4 text-white" />
+      </div>
+      <span>{rest.join(' | ')}</span>
+    </div>
+  );
+};
+
 const renderContent = (line: CollapsibleLine) => {
   switch (line.type) {
     case 'SOQL':
@@ -157,12 +170,14 @@ const renderContent = (line: CollapsibleLine) => {
       return renderDebugLine(line.summary);
     case 'DML':
       return renderDmlLine(line.summary);
+    case 'VALIDATION':
+      return renderValidationLine(`${line.time} | ${line.summary}`);
     default:
       return <span>{line.summary}</span>;
   }
 };
 
-export function LogViewer({ content, isLoading = false }: LogViewerProps) {
+export function LogViewer({ content, isLoading }: LogViewerProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredLines, setFilteredLines] = useState<CollapsibleLine[]>([])
   const [showTimeline, setShowTimeline] = useState(false)
@@ -353,7 +368,13 @@ export function LogViewer({ content, isLoading = false }: LogViewerProps) {
   };
 
   return (
-    <div className="h-full flex flex-col ml-1">
+    <div className="h-full flex flex-col ml-1 relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+          <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+        </div>
+      )}
+      
       <div className="flex-none bg-white border-b border-gray-200 p-2">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

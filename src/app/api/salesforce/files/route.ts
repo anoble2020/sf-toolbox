@@ -78,10 +78,6 @@ export async function GET(request: Request) {
     }
 
     const data = await response.json()
-    console.log('Composite response:', JSON.stringify(data, null, 2))
-
-    console.log('all lwcs', data.compositeResponse[2].body.records)
-    console.log('all aura', data.compositeResponse[3].body.records)
 
     // Process and format the response
     const files = {

@@ -4,8 +4,13 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Settings, LogOut, User } from "lucide-react"
+import { Settings, LogOut, User, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface UserNavProps {
@@ -16,6 +21,11 @@ interface UserNavProps {
 
 export default function UserNav({ username, orgDomain }: UserNavProps) {
   const router = useRouter()
+
+  const handleSwitchUser = () => {
+    // TODO: Implement switch user
+    // router.push('/auth')
+  }
 
   const handleSignOut = () => {
     localStorage.removeItem('sf_refresh_token')
@@ -40,10 +50,21 @@ export default function UserNav({ username, orgDomain }: UserNavProps) {
             </AvatarFallback>
           </Avatar>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem>
+            <Settings className="mr-2 h-4 w-4" />
+            Settings
+            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSwitchUser}>
+            <Users className="mr-2 h-4 w-4" />
+            Switch User
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={handleSignOut}>
             <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
+            Log Out
+            <DropdownMenuShortcut>⌘Q</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

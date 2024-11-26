@@ -51,6 +51,7 @@ interface LogsTableProps {
   onRefresh: () => void
   currentUserOnly: boolean
   onToggleCurrentUser: (checked: boolean) => void
+  isLoadingLog?: boolean
 }
 
 export function LogsTable({ 
@@ -58,7 +59,8 @@ export function LogsTable({
   onSelectLog,
   onRefresh,
   currentUserOnly,
-  onToggleCurrentUser
+  onToggleCurrentUser,
+  isLoadingLog
 }: LogsTableProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -230,14 +232,17 @@ export function LogsTable({
                 .map((log) => (
                   <TableRow 
                     key={log.id}
-                    className="cursor-pointer hover:bg-gray-100"
-                    onClick={() => onSelectLog(log)}
+                    className={cn(
+                      "cursor-pointer hover:bg-gray-100",
+                      isLoadingLog && "opacity-50 pointer-events-none"
+                    )}
+                    onClick={() => !isLoadingLog && onSelectLog(log)}
                   >
                     <TableCell className="whitespace-nowrap">{log.user}</TableCell>
                     <TableCell className="whitespace-nowrap">{log.operation}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatDateTime(log.time)}</TableCell>
                     <TableCell className="whitespace-nowrap">{formatDuration(log.durationMilliseconds)}</TableCell>
-                    <TableCell className="whitespace-nowrap">{log.status}</TableCell>
+                    <TableCell className="whitespace-nowrap truncate max-w-[200px]">{log.status}</TableCell>
                     <TableCell className="whitespace-nowrap">{log.size}</TableCell>
                   </TableRow>
                 ))}

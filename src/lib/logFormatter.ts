@@ -13,7 +13,7 @@ interface FormattedLine {
   time: string;
   summary: string;
   details?: string;
-  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DML';
+  type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DML' | 'VALIDATION';
   isCollapsible?: boolean;
   suffix?: string;
   nestLevel?: number;
@@ -21,6 +21,15 @@ interface FormattedLine {
   isUnitStart?: boolean;
   isUnitEnd?: boolean;
   originalIndex?: number;
+}
+
+interface NamespaceLimits {
+  [namespace: string]: {
+    [key: string]: {
+      used: number;
+      total: number;
+    };
+  };
 }
 
 function tryFormatJson(str: string): { formatted: string; isJson: boolean; preview: string } {
@@ -195,6 +204,48 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
         };
       }
     }
+  } else if (cleanLine.includes('VALIDATION_RULE')) {
+    const ruleMatch = cleanLine.match(/VALIDATION_RULE\|([^|]+)\|([^|]+)/);
+    if (ruleMatch) {
+      const [_, ruleId, ruleName] = ruleMatch;
+      
+      // Look ahead for formula and result
+      let formula = '';
+      let result = 'UNKNOWN';
+      let i = 1;
+      while (i < 3 && (originalIndex + i) < allLines.length) {
+        const nextLine = allLines[originalIndex + i];
+        if (nextLine.includes('VALIDATION_FORMULA')) {
+          formula = nextLine.split('|')[2];
+        } else if (nextLine.includes('VALIDATION_PASS')) {
+          result = 'PASS';
+        } else if (nextLine.includes('VALIDATION_FAIL')) {
+          result = 'FAIL';
+        }
+        i++;
+      }
+
+      return {
+        id: baseId,
+        time,
+        summary: `VALIDATION RULE | ${ruleName} | ${result} | ${formula}`,
+        type: 'VALIDATION',
+        isCollapsible: false,
+        originalIndex
+      };
+    }
+  }
+
+  // Skip validation formula and pass/fail lines as they're handled above
+  if (cleanLine.includes('VALIDATION_FORMULA') || 
+      cleanLine.includes('VALIDATION_PASS') || 
+      cleanLine.includes('VALIDATION_FAIL')) {
+    return null;
+  }
+
+  // Skip CODE_UNIT lines for validation rules
+  if (cleanLine.includes('CODE_UNIT_') && cleanLine.includes('Validation:')) {
+    return null;
   }
 
   return {
@@ -225,20 +276,26 @@ function boldSqlKeywords(sql: string): string {
 export function formatLogs(lines: string[]): FormattedLine[] {
   const formattedLines: FormattedLine[] = [];
   let collectingLimits = false;
-  let limitData: { [key: string]: { used: number; total: number } } = {};
+  let currentNamespace = '';
+  let namespaceLimits: NamespaceLimits = {};
   let currentTime = '';
 
   // First pass: create array with original indices
   const validLines = lines.map((line, index) => ({
     content: line.trim(),
     originalIndex: index
-  })).filter(({ content }) => {
+  })).filter(({ content, originalIndex }) => {
+    // Filter out the first debug line
+    if (content.match(/^\[\d+\](\|.*)?$/)) {
+      return false;
+    }
+
     // Filter out empty lines and standalone zeros
     if (!(content.match(/\d{2}:\d{2}:\d{2}/) || (content !== '0' && content !== ''))) {
       return false;
     }
 
-    // Filter out SYSTEM_MODE, SYSTEM_METHOD, and CUMULATIVE_LIMIT_USAGE lines
+    // Filter out SYSTEM_MODE and SYSTEM_METHOD lines
     if (content.includes('SYSTEM_MODE_ENTER') || 
         content.includes('SYSTEM_MODE_EXIT') ||
         content.includes('SYSTEM_METHOD_ENTER') ||
@@ -251,6 +308,21 @@ export function formatLogs(lines: string[]): FormattedLine[] {
 
   for (let i = 0; i < validLines.length; i++) {
     const { content, originalIndex } = validLines[i];
+    
+    // Handle regular lines when not collecting limits
+    if (!collectingLimits) {
+      const formattedLine = formatLogLine(content, originalIndex, lines);
+      if (formattedLine) {
+        formattedLines.push(formattedLine);
+      }
+    }
+
+    // Handle limits collection
+    if (content.includes('CUMULATIVE_LIMIT_USAGE') && !content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
+      collectingLimits = true;
+      continue;
+    }
+
     const nextLine = i < validLines.length - 1 ? validLines[i + 1].content : '';
     
     const timeMatch = content.match(/(\d{2}:\d{2}:\d{2})/);
@@ -297,55 +369,18 @@ export function formatLogs(lines: string[]): FormattedLine[] {
       continue;
     }
 
-        // Handle limits collection
-        if (content.includes('CUMULATIVE_LIMIT_USAGE') && !content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
-            collectingLimits = true;   
-            continue;
-        }
-
-    // Handle regular lines
-    if (!collectingLimits) {
-      const formattedLine = formatLogLine(content, originalIndex, lines);
-      if (formattedLine) {
-        formattedLines.push({
-          ...formattedLine,
-          type: formattedLine.type,
-          originalIndex
-        });
-      }
+    if (content.includes('CUMULATIVE_LIMIT_USAGE') && !content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
+      collectingLimits = true;
+      continue;
     }
 
-    if (content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
-      const metrics = [];
-      metrics.push('Limits');
-      
-      if (limitData['Number of SOQL queries']?.used > 0 || limitData['Number of query rows']?.used > 0) {
-        metrics.push(`🔍 SOQL: ${limitData['Number of SOQL queries'].used}/${limitData['Number of SOQL queries'].total} Queries, ${limitData['Number of query rows'].used}/${limitData['Number of query rows'].total} Rows`);
+    // Handle namespace declaration
+    if (collectingLimits && content.includes('LIMIT_USAGE_FOR_NS')) {
+      const namespaceMatch = content.match(/LIMIT_USAGE_FOR_NS\|([^|]+)/);
+      if (namespaceMatch) {
+        currentNamespace = namespaceMatch[1];
+        namespaceLimits[currentNamespace] = {};
       }
-      
-      if (limitData['Number of DML statements']?.used > 0 || limitData['Number of DML rows']?.used > 0) {
-        metrics.push(`🔶 DML: ${limitData['Number of DML statements'].used}/${limitData['Number of DML statements'].total} Statements, ${limitData['Number of DML rows'].used}/${limitData['Number of DML rows'].total} Rows`);
-      }
-      
-      if (limitData['Maximum CPU time']?.used > 0) {
-        const heapUsedKB = Math.round(limitData['Maximum heap size'].used / 1024);
-        const heapTotalKB = Math.round(limitData['Maximum heap size'].total / 1024);
-        metrics.push(`💻 CPU: ${limitData['Maximum CPU time'].used}ms, Heap: ${heapUsedKB}/${heapTotalKB}KB`);
-      }
-
-      if (metrics.length > 0) {
-        formattedLines.push({
-          id: `line_${originalIndex}`,
-          time: currentTime,
-          summary: metrics.join(' | '),
-          type: 'LIMITS',
-          isCollapsible: false,
-          originalIndex
-        });
-      }
-      
-      collectingLimits = false;
-      limitData = {};
       continue;
     }
 
@@ -353,11 +388,53 @@ export function formatLogs(lines: string[]): FormattedLine[] {
       const metricMatch = content.match(/^(.*?):\s*(\d+)\s*out of\s*(\d+)/);
       if (metricMatch) {
         const [_, name, used, total] = metricMatch;
-        limitData[name.trim()] = {
-          used: parseInt(used),
-          total: parseInt(total)
-        };
+        if (currentNamespace && namespaceLimits[currentNamespace]) {
+          namespaceLimits[currentNamespace][name.trim()] = {
+            used: parseInt(used),
+            total: parseInt(total)
+          };
+        }
       }
+    }
+
+    if (content.includes('CUMULATIVE_LIMIT_USAGE_END')) {
+      // Process each namespace's limits
+      Object.entries(namespaceLimits).forEach(([namespace, limitData]) => {
+        const metrics = [];
+        metrics.push(`Limits (${namespace})`);
+        
+        // Always show SOQL metrics
+        if (limitData['Number of SOQL queries']?.used > 0) {
+          metrics.push(`🔍 SOQL: ${limitData['Number of SOQL queries'].used}/${limitData['Number of SOQL queries'].total} Queries, ${limitData['Number of query rows'].used}/${limitData['Number of query rows'].total} Rows`);
+        }
+        
+        // Always show DML metrics if they exist
+        if (limitData['Number of DML statements']?.used > 0) {
+          metrics.push(`🔶 DML: ${limitData['Number of DML statements'].used}/${limitData['Number of DML statements'].total} Statements, ${limitData['Number of DML rows'].used}/${limitData['Number of DML rows'].total} Rows`);
+        }
+        
+        // Always show CPU/Heap metrics if they exist
+        if (limitData['Maximum CPU time']?.used > 0) {
+          const heapUsedKB = Math.round(limitData['Maximum heap size']?.used / 1024) || 0;
+          const heapTotalKB = Math.round(limitData['Maximum heap size']?.total / 1024) || 0;
+          metrics.push(`💻 CPU: ${limitData['Maximum CPU time'].used}ms, Heap: ${heapUsedKB}/${heapTotalKB}KB`);
+        }
+
+        if (metrics.length > 1) {
+          formattedLines.push({
+            id: `line_${originalIndex}`,
+            time: currentTime,
+            summary: metrics.join(' | '),
+            type: 'LIMITS',
+            isCollapsible: false,
+            originalIndex
+          });
+        }
+      });
+      
+      collectingLimits = false;
+      namespaceLimits = {};
+      continue;
     }
   }
 
