@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 import UserNav from '@/components/UserNav'
 import { ApiLimits } from '@/components/ApiLimits'
 import { useEffect, useState } from 'react'
+import { ThemeToggle } from '@/components/ThemeToggle'
 
 interface LayoutProps {
     children: React.ReactNode
@@ -111,7 +112,8 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="flex-none">
                         <ApiLimits />
                     </div>
-                    <div className="flex-none">
+                    <div className="flex items-center gap-2">
+                        <ThemeToggle />
                         <UserNav username={userInfo?.username || ''} orgDomain={userInfo?.instance_url || ''} />
                     </div>
                 </header>

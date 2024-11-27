@@ -10,7 +10,7 @@ import {
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Settings, LogOut, User, Users } from 'lucide-react'
+import { Settings, LogOut, User, Users, Moon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 interface UserNavProps {
