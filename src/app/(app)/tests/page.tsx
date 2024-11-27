@@ -287,9 +287,8 @@ export default function TestsPage() {
 
     if (loading) {
         return (
-            <div className="text-center justify-center mt-16">
-                <h2 className="text-xl font-medium mb-4">Retrieving Test Classes...</h2>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
             </div>
         )
     }

@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 console.log('CallbackPage component defined')
 
@@ -124,7 +125,7 @@ export default function CallbackPage() {
         <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-semibold mb-4">Authenticating...</h2>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                      <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         </div>
     )

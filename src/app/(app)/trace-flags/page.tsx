@@ -14,7 +14,7 @@ import {
 } from '@/lib/salesforce'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Loader2, Plus } from 'lucide-react'
 import { format } from 'date-fns'
 import { Circle } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -226,10 +226,9 @@ export default function TraceFlagsPage() {
 
     if (loading) {
         return (
-            <div className="text-center justify-center mt-16">
-                <h2 className="text-xl font-medium mb-4">Retrieving Trace Flags...</h2>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            </div>
+          <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+          </div>
         )
     }
 

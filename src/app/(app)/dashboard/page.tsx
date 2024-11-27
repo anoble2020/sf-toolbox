@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code, Users, Bell, Database, Shield, Box, Clock, TrendingUp, Mail } from 'lucide-react'
+import { Code, Users, Bell, Database, Shield, Box, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
 import { format } from 'date-fns'
@@ -50,7 +50,12 @@ const SalesforceDashboard = () => {
         fetchOrgData()
     }, [])
 
-    if (loading) return <div>Loading...</div>
+    if(loading){
+        return (
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+        </div>
+    )}
     if (error) return <div className="text-center justify-center">Error: {error}</div>
     if (!orgData?.limits) return <div className="text-center justify-center">No data available</div>
 
