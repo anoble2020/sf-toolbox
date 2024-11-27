@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code, Users, Bell, Database, Shield, Box, Clock, Loader, Mail } from 'lucide-react'
+import { Code, Users, Bell, Database, Shield, Box, Clock, TrendingUp, Mail } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
 import { format } from 'date-fns'
@@ -12,6 +12,8 @@ const SalesforceDashboard = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [orgData, setOrgData] = useState<any>(null)
+
+    const userTimezone = localStorage.getItem('sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     useEffect(() => {
         const fetchOrgData = async () => {
@@ -124,22 +126,38 @@ const SalesforceDashboard = () => {
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>API Usage Trend ({timeRange})</CardTitle>
+                <CardHeader className="flex flex-row items-center justify-between">
+                <div className="flex items-center space-x-2">
+                <TrendingUp className="w-6 h-6 text-purple-900" />
+                        <CardTitle>API Usage Trend ({timeRange})</CardTitle>
+                    </div>
+                    <div className="text-sm text-muted-foreground justify-end">
+                        Total Requests (24h): {
+                            orgData.events?.[0]?.dataPoints?.reduce((sum: number, point: any) => sum + (point.count || 0), 0).toLocaleString() || 0
+                        }
+                    </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="h-80">
+                    <div className="h-96">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={orgData.events?.[0]?.dataPoints || []}>
                                 <CartesianGrid strokeDasharray="3 3" />
                                 <XAxis 
                                     dataKey="timestamp"
                                     tickFormatter={(value) => {
-                                        if (!value) return '';
-                                        // Convert YYYYMMDDHHMMSS to HH:mm
-                                        const hour = value.substring(8, 10);
-                                        const minute = value.substring(10, 12);
-                                        return `${hour}:${minute}`;
+                                        if (!value || typeof value !== 'string') return '';
+                                        try {
+                                            const date = new Date(
+                                                parseInt(value.substring(0, 4)),
+                                                parseInt(value.substring(4, 6)) - 1,
+                                                parseInt(value.substring(6, 8)),
+                                                parseInt(value.substring(8, 10)),
+                                                parseInt(value.substring(10, 12))
+                                            );
+                                            return format(date, 'h:mm a', { timeZone: userTimezone });
+                                        } catch (e) {
+                                            return '';
+                                        }
                                     }}
                                 />
                                 <YAxis 
@@ -147,28 +165,27 @@ const SalesforceDashboard = () => {
                                 />
                                 <Tooltip 
                                     labelFormatter={(value) => {
-                                        if (!value) return '';
-                                        // Convert YYYYMMDDHHMMSS to HH:mm:ss
-                                        const hour = value.substring(8, 10);
-                                        const minute = value.substring(10, 12);
-                                        const second = value.substring(12, 14);
-                                        return `Time: ${hour}:${minute}:${second}`;
+                                        if (!value || typeof value !== 'string') return '';
+                                        try {
+                                            const date = new Date(
+                                                parseInt(value.substring(0, 4)),
+                                                parseInt(value.substring(4, 6)) - 1,
+                                                parseInt(value.substring(6, 8)),
+                                                parseInt(value.substring(8, 10)),
+                                                parseInt(value.substring(10, 12))
+                                            );
+                                            return format(date, 'MMM d, h:mm a', { timeZone: userTimezone });
+                                        } catch (e) {
+                                            return '';
+                                        }
                                     }}
-                                    formatter={(value: number) => [`${value} requests`, 'API Requests']}
+                                    formatter={(value: number) => [`${value?.toLocaleString() || 0} requests`, 'API Requests']}
                                 />
                                 <Line 
                                     type="monotone" 
                                     dataKey="count" 
                                     name="Request Count"
                                     stroke="#2563eb" 
-                                    strokeWidth={2}
-                                    dot={false}
-                                />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="avgRunTime" 
-                                    name="Avg Run Time"
-                                    stroke="#16a34a" 
                                     strokeWidth={2}
                                     dot={false}
                                 />

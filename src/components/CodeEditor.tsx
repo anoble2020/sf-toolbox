@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import CodeMirror from '@uiw/react-codemirror'
 import { StreamLanguage } from '@codemirror/language'
 import { java } from '@codemirror/legacy-modes/mode/clike'
-import { vscodeLightInit, vscodeDarkInit } from '@uiw/codemirror-theme-vscode'
+import { xcodeDark, xcodeLight } from '@uiw/codemirror-theme-xcode'
 import { EditorState } from '@codemirror/state'
 import { useTheme } from 'next-themes'
 
@@ -34,26 +34,7 @@ export function CodeEditor({ value, onChange, language = 'apex' }: CodeEditorPro
             height="auto"
             minHeight="200px"
             maxHeight="calc(100vh - 200px)"
-            theme={isDark 
-                ? vscodeDarkInit({
-                    settings: {
-                        background: '#1e1e1e',
-                        foreground: '#d4d4d4',
-                        selection: '#264f78',
-                        selectionMatch: '#264f78',
-                        lineHighlight: '#2a2d2e',
-                    },
-                })
-                : vscodeLightInit({
-                    settings: {
-                        background: '#ffffff',
-                        foreground: '#000000',
-                        selection: '#add6ff',
-                        selectionMatch: '#add6ff',
-                        lineHighlight: '#f0f0f0',
-                    },
-                })
-            }
+            theme={isDark ? xcodeDark : xcodeLight}
             onChange={onChange}
             extensions={[
                 StreamLanguage.define(java),

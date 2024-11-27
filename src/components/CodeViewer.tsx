@@ -4,11 +4,10 @@ import { StreamLanguage } from '@codemirror/language'
 import { java } from '@codemirror/legacy-modes/mode/clike'
 import { javascript } from '@codemirror/lang-javascript'
 import { xml } from '@codemirror/lang-xml'
-import { vscodeLightInit, vscodeDarkInit } from '@uiw/codemirror-theme-vscode'
 import { EditorState } from '@codemirror/state'
 import { highlightSpecialChars, ViewPlugin, Decoration, DecorationSet } from '@codemirror/view'
 import { useTheme } from 'next-themes'
-
+import { xcodeDark, xcodeLight } from '@uiw/codemirror-theme-xcode'
 interface CodeViewerProps {
     content: string
     language: 'apex' | 'javascript' | 'html' | 'xml'
@@ -98,26 +97,7 @@ export function CodeViewer({ content, language, coveredLines = [], uncoveredLine
             <CodeMirror
                 value={stringContent}
                 height="100%"
-                theme={isDark 
-                    ? vscodeDarkInit({
-                        settings: {
-                            background: '#1e1e1e',
-                            foreground: '#d4d4d4',
-                            selection: '#264f78',
-                            selectionMatch: '#264f78',
-                            lineHighlight: '#2a2d2e',
-                        },
-                    })
-                    : vscodeLightInit({
-                        settings: {
-                            background: '#ffffff',
-                            foreground: '#000000',
-                            selection: '#add6ff',
-                            selectionMatch: '#add6ff',
-                            lineHighlight: '#f0f0f0',
-                        },
-                    })
-                }
+                theme={isDark ? xcodeDark : xcodeLight}
                 editable={false}
                 extensions={[
                     getLanguageExtension(language),
