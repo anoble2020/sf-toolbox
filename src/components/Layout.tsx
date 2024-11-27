@@ -1,13 +1,12 @@
 'use client'
 
-import { Scroll, Flag, FlaskConical, Search, Play, Github, Coffee, Telescope } from 'lucide-react'
+import { Scroll, Flag, FlaskConical, Search, Play, Github, Coffee, Telescope, Home } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import UserNav from '@/components/UserNav'
 import { ApiLimits } from '@/components/ApiLimits'
 import { useEffect, useState } from 'react'
-import { ThemeToggle } from '@/components/ThemeToggle'
 
 interface LayoutProps {
     children: React.ReactNode
@@ -15,7 +14,7 @@ interface LayoutProps {
 
 interface UserInfo {
     username: string
-    orgDomain: string
+    instance_url: string
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -34,6 +33,7 @@ export default function Layout({ children }: LayoutProps) {
     }, [])
 
     const menuItems = [
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
         { name: 'Logs', path: '/logs', icon: Scroll },
         { name: 'Trace Flags', path: '/trace-flags', icon: Flag },
         { name: 'Query', path: '/query', icon: Search },
@@ -112,9 +112,8 @@ export default function Layout({ children }: LayoutProps) {
                     <div className="flex-none">
                         <ApiLimits />
                     </div>
-                    <div className="flex items-center gap-2">
-                        <ThemeToggle />
-                        <UserNav username={userInfo?.username || ''} orgDomain={userInfo?.orgDomain || ''} />
+                    <div className="flex-none">
+                        <UserNav username={userInfo?.username || ''} orgDomain={userInfo?.instance_url || ''} />
                     </div>
                 </header>
 

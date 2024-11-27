@@ -111,8 +111,8 @@ export default function CallbackPage() {
 
                 localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
 
-                console.log('Stored tokens, redirecting to /logs...')
-                router.push('/logs')
+                console.log('Stored tokens, redirecting to /dashboard...')
+                router.push('/dashboard')
             })
             .catch((error) => {
                 console.error('Fetch error:', error)
