@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code, Users, Bell, Database, Shield, Box, Clock, Loader } from 'lucide-react'
+import { Code, Users, Bell, Database, Shield, Box, Clock, Loader, Mail } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
+import { format } from 'date-fns'
 
 const SalesforceDashboard = () => {
     const [timeRange] = useState('24h')
@@ -32,8 +33,12 @@ const SalesforceDashboard = () => {
                 if (!response.ok) throw new Error('Failed to fetch org data')
 
                 const data = await response.json()
+                console.log('Full response:', data)
+                console.log('Events data:', data.events)
+                console.log('First event dataPoints:', data.events?.[0]?.dataPoints)
                 setOrgData(data)
             } catch (err) {
+                console.error('Error in fetchOrgData:', err)
                 setError(err instanceof Error ? err.message : 'Failed to fetch org data')
             } finally {
                 setLoading(false)
@@ -44,8 +49,8 @@ const SalesforceDashboard = () => {
     }, [])
 
     if (loading) return <div>Loading...</div>
-    if (error) return <div>Error: {error}</div>
-    if (!orgData?.limits) return <div>No data available</div>
+    if (error) return <div className="text-center justify-center">Error: {error}</div>
+    if (!orgData?.limits) return <div className="text-center justify-center">No data available</div>
 
     const {
         DailyApiRequests = { Max: 0, Remaining: 0 },
@@ -64,7 +69,7 @@ const SalesforceDashboard = () => {
     } = orgData.limits
 
     return (
-        <div className="p-6 space-y-6 bg-gray-50 rounded-lg">
+        <div className="p-6 space-y-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <Card>
                     <CardHeader>
@@ -125,16 +130,47 @@ const SalesforceDashboard = () => {
                 <CardContent>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={orgData.events}>
+                            <LineChart data={orgData.events?.[0]?.dataPoints || []}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="LogDate" />
-                                <YAxis />
-                                <Tooltip />
+                                <XAxis 
+                                    dataKey="timestamp"
+                                    tickFormatter={(value) => {
+                                        if (!value) return '';
+                                        // Convert YYYYMMDDHHMMSS to HH:mm
+                                        const hour = value.substring(8, 10);
+                                        const minute = value.substring(10, 12);
+                                        return `${hour}:${minute}`;
+                                    }}
+                                />
+                                <YAxis 
+                                    label={{ value: 'Number of Requests', angle: -90, position: 'insideLeft' }}
+                                />
+                                <Tooltip 
+                                    labelFormatter={(value) => {
+                                        if (!value) return '';
+                                        // Convert YYYYMMDDHHMMSS to HH:mm:ss
+                                        const hour = value.substring(8, 10);
+                                        const minute = value.substring(10, 12);
+                                        const second = value.substring(12, 14);
+                                        return `Time: ${hour}:${minute}:${second}`;
+                                    }}
+                                    formatter={(value: number) => [`${value} requests`, 'API Requests']}
+                                />
                                 <Line 
                                     type="monotone" 
-                                    dataKey="LogFileLength" 
+                                    dataKey="count" 
+                                    name="Request Count"
                                     stroke="#2563eb" 
-                                    strokeWidth={2} 
+                                    strokeWidth={2}
+                                    dot={false}
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="avgRunTime" 
+                                    name="Avg Run Time"
+                                    stroke="#16a34a" 
+                                    strokeWidth={2}
+                                    dot={false}
                                 />
                             </LineChart>
                         </ResponsiveContainer>
@@ -240,19 +276,19 @@ const SalesforceDashboard = () => {
                 <Card>
                     <CardHeader>
                         <div className="flex items-center space-x-2">
-                            <Loader className="w-6 h-6 text-indigo-500" />
-                            <CardTitle>Batch Allocations</CardTitle>
+                            <Mail className="w-6 h-6 text-indigo-500" />
+                            <CardTitle>Email Allocations</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent>
                         <div className="space-y-4">
                             <div className="flex justify-between">
-                                <span>Batch Jobs Remaining</span>
-                                <span className="font-medium">4 / 5</span>
+                                <span>Single Email Remaining</span>
+                                <span className="font-medium">{SingleEmail.Remaining} / {SingleEmail.Max}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span>Batch Job Items Processed</span>
-                                <span className="font-medium">145,678</span>
+                                <span>Mass Email Remaining</span>
+                                <span className="font-medium">{MassEmail.Remaining} / {MassEmail.Max}</span>
                             </div>
                         </div>
                     </CardContent>

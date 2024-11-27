@@ -160,7 +160,7 @@ export function LogsTable({
     return (
         <div
             className={cn(
-                'fixed bottom-0 left-64 right-0 bg-white border-t border-gray-200 transition-all duration-300 z-40',
+                'fixed bottom-0 left-64 right-0 bg-background border-t border-gray-200 transition-all duration-300 z-40',
                 isCollapsed ? 'h-12' : '',
             )}
             style={{ height: isCollapsed ? '48px' : `${tableHeight}px` }}
@@ -174,15 +174,22 @@ export function LogsTable({
 
             {/* Table controls */}
             <div className="absolute -top-8 right-4 flex gap-2">
-                <Button variant="outline" size="sm" onClick={onRefresh} className="rounded-t-lg rounded-b-none">
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRefresh}
+                    className="rounded-t-lg rounded-b-none dark:border-white"
+                >
                     <RefreshCw className="h-4 w-4" />
                 </Button>
-                <button
+                <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setIsCollapsed(!isCollapsed)}
-                    className="bg-white border border-gray-200 rounded-t-lg px-4 py-1 text-sm"
+                    className="rounded-t-lg rounded-b-none dark:border-white"
                 >
                     {isCollapsed ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </button>
+                </Button>
             </div>
 
             {/* Table content */}
@@ -194,7 +201,7 @@ export function LogsTable({
                                 {headers.map((header) => (
                                     <TableHead
                                         key={`header-${header.key}`}
-                                        className="cursor-pointer hover:bg-gray-50 text-[11px] whitespace-nowrap"
+                                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-600 text-[11px] whitespace-nowrap"
                                         onClick={() => handleSort(header.key)}
                                     >
                                         {header.label}
@@ -212,7 +219,7 @@ export function LogsTable({
                                     <TableRow
                                         key={log.id}
                                         className={cn(
-                                            'cursor-pointer hover:bg-gray-100',
+                                            'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600',
                                             isLoadingLog && 'opacity-50 pointer-events-none',
                                         )}
                                         onClick={() => !isLoadingLog && onSelectLog(log)}
@@ -234,9 +241,9 @@ export function LogsTable({
                 </div>
 
                 {/* Pagination */}
-                <div className="flex justify-between items-center p-2 border-t">
+                <div className="flex justify-between items-center p-2 border-t bg-background">
                     <div className="flex items-center gap-4">
-                        <div className="text-xs text-gray-500">
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
                             Page {currentPage} of {Math.ceil(logs.length / logsPerPage)}
                         </div>
                         <div className="flex items-center space-x-2">
@@ -244,8 +251,9 @@ export function LogsTable({
                                 id="current-user-logs"
                                 checked={currentUserOnly}
                                 onCheckedChange={onToggleCurrentUser}
+                                className="dark:bg-white"
                             />
-                            <Label htmlFor="current-user-logs" className="text-xs text-gray-600">
+                            <Label htmlFor="current-user-logs" className="text-xs text-gray-600 dark:text-gray-400">
                                 My Logs Only
                             </Label>
                         </div>

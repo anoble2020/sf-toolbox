@@ -398,7 +398,7 @@ export default function TestsPage() {
                                     variant="outline"
                                     size="sm"
                                     onClick={clearTestResults}
-                                    className="text-destructive hover:bg-destructive/10"
+                                    className="text-destructive dark:text-red-500 hover:bg-destructive/10"
                                 >
                                     <Trash2 className="h-4 w-4 mr-2" />
                                     Clear Results

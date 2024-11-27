@@ -10,18 +10,19 @@ import {
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Settings, LogOut, User, Users, Moon } from 'lucide-react'
+import { Settings, LogOut, User, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { OrgSwitcherModal } from '@/components/OrgSwitcherModal'
 
 interface UserNavProps {
     username: string
     orgDomain: string
+    orgId: string
     photoUrl?: string
 }
 
-export default function UserNav({ username, orgDomain }: UserNavProps) {
+export default function UserNav({ username, orgDomain, orgId }: UserNavProps) {
     const router = useRouter()
     const [isOrgSwitcherOpen, setIsOrgSwitcherOpen] = useState(false)
 
@@ -75,7 +76,7 @@ export default function UserNav({ username, orgDomain }: UserNavProps) {
             <OrgSwitcherModal 
                 isOpen={isOrgSwitcherOpen} 
                 onClose={() => setIsOrgSwitcherOpen(false)}
-                currentOrgId={JSON.parse(localStorage.getItem('sf_user_info') || '{}').orgId}
+                currentOrgId={orgId}
             />
         </>
     )
