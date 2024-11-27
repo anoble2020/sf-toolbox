@@ -45,6 +45,6 @@ $RECYCLE.BIN/
 **/.venv/
 **/venv/
 
-.next/static/*
+**/.next/*
 .env.local
 node_modules

@@ -78,6 +78,10 @@ function coverageHighlightPlugin(coveredLines: number[] = [], uncoveredLines: nu
 export function CodeViewer({ content, language, coveredLines = [], uncoveredLines = [] }: CodeViewerProps) {
     const [mounted, setMounted] = useState(false)
 
+
+    console.log('coveredLines', coveredLines)
+    console.log('uncoveredLines', uncoveredLines)
+
     useEffect(() => {
         setMounted(true)
     }, [])

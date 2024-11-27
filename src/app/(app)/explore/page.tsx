@@ -215,16 +215,14 @@ export default function ExplorePage() {
             </div>
 
             <div className="flex-1 overflow-hidden">
-                {file?.files && file.files.length > 0 ? (
-                    console.log('Rendering BundleViewer with files:', file.files) || ( // Debug log
-                        <BundleViewer files={file.files} />
-                    )
+                {file?.files && file.files.length > 1 ? (
+                    <BundleViewer files={file.files} />
                 ) : (
                     <CodeViewer
                         content={file?.Body ?? ''}
                         language={getLanguage(fileType)}
-                        coveredLines={file?.Coverage?.coveredLines ?? []}
-                        uncoveredLines={file?.Coverage?.uncoveredLines ?? []}
+                        coveredLines={file?.Coverage?.coveredLines}
+                        uncoveredLines={file?.Coverage?.uncoveredLines}
                     />
                 )}
             </div>
