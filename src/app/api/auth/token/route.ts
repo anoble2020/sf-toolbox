@@ -50,7 +50,8 @@ export async function POST(request: Request) {
             tokens,
             user: {
                 username: userInfo.preferred_username,
-                orgDomain: userInfo.organization_id,
+                orgDomain: tokens.instance_url.replace('https://', ''),
+                orgId: userInfo.organization_id,
                 photoUrl: userInfo.picture,
                 timezone: userInfo.zoneinfo,
                 user_id: userInfo.user_id,

@@ -89,7 +89,6 @@ export const queryLogs = async (currentUserOnly = false): Promise<ApexLog[]> => 
         updateApiLimitsFromHeaders(response.headers)
 
         const data = await response.json()
-        console.log('Raw logs response:', data)
 
         if (!response.ok) {
             throw new Error(`Failed to fetch logs: ${data.error}`)
@@ -163,13 +162,15 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
         const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
         // First check for existing trace flags
+        const dateNow = new Date().toISOString()
         const query = `
-      SELECT Id, ExpirationDate 
-      FROM TraceFlag 
-      WHERE TracedEntityId = '${userId}' 
-      AND ExpirationDate > ${new Date().toISOString()}
-      LIMIT 1
-    `
+            SELECT Id, ExpirationDate 
+            FROM TraceFlag 
+            WHERE TracedEntityId = '${userId}' 
+            AND ExpirationDate > ${dateNow}
+            ORDER BY ExpirationDate DESC
+            LIMIT 1
+        `
 
         const existingFlagsResponse = await fetch(
             `/api/salesforce/tooling/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
@@ -180,13 +181,16 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
             },
         )
 
+        if (!existingFlagsResponse.ok) {
+            throw new Error('Failed to check existing trace flags')
+        }
+
         const existingFlags = await existingFlagsResponse.json()
 
         // If active trace flag exists, return early
         if (existingFlags.records && existingFlags.records.length > 0) {
-            const existingFlag = existingFlags.records[0]
-            const expirationDate = new Date(existingFlag.ExpirationDate)
-            throw new Error(`Active trace flag already exists (expires ${expirationDate.toLocaleString()})`)
+            console.log('Found existing trace flag:', existingFlags.records[0])
+            return // Just return instead of throwing an error
         }
 
         let queriedDebugLevelId

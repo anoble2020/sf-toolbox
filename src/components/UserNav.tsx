@@ -12,6 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Settings, LogOut, User, Users, Moon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { OrgSwitcherModal } from '@/components/OrgSwitcherModal'
 
 interface UserNavProps {
     username: string
@@ -21,10 +23,10 @@ interface UserNavProps {
 
 export default function UserNav({ username, orgDomain }: UserNavProps) {
     const router = useRouter()
+    const [isOrgSwitcherOpen, setIsOrgSwitcherOpen] = useState(false)
 
     const handleSwitchUser = () => {
-        // TODO: Implement switch user
-        // router.push('/auth')
+        setIsOrgSwitcherOpen(true)
     }
 
     const handleSignOut = () => {
@@ -37,37 +39,44 @@ export default function UserNav({ username, orgDomain }: UserNavProps) {
     console.log(username, orgDomain)
 
     return (
-        <div className="flex items-center gap-4">
-            <div className="flex flex-col items-end">
-                <span className="text-sm font-light">{username}</span>
-                <span className="text-xs text-muted-foreground">{orgDomain}</span>
+        <>
+            <div className="flex items-center gap-4">
+                <div className="flex flex-col items-end">
+                    <span className="text-sm font-light">{username}</span>
+                    <span className="text-xs text-muted-foreground">{orgDomain}</span>
+                </div>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Avatar className="h-8 w-8 cursor-pointer">
+                            <AvatarFallback>
+                                <User className="h-4 w-4" />
+                            </AvatarFallback>
+                        </Avatar>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem>
+                            <Settings className="mr-2 h-4 w-4" />
+                            Settings
+                            <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSwitchUser}>
+                            <Users className="mr-2 h-4 w-4" />
+                            Switch User
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleSignOut}>
+                            <LogOut className="mr-2 h-4 w-4" />
+                            Log Out
+                            <DropdownMenuShortcut>⌘Q</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
             </div>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Avatar className="h-8 w-8 cursor-pointer">
-                        <AvatarFallback>
-                            <User className="h-4 w-4" />
-                        </AvatarFallback>
-                    </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem>
-                        <Settings className="mr-2 h-4 w-4" />
-                        Settings
-                        <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleSwitchUser}>
-                        <Users className="mr-2 h-4 w-4" />
-                        Switch User
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleSignOut}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        Log Out
-                        <DropdownMenuShortcut>⌘Q</DropdownMenuShortcut>
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
+            <OrgSwitcherModal 
+                isOpen={isOrgSwitcherOpen} 
+                onClose={() => setIsOrgSwitcherOpen(false)}
+                currentOrgId={JSON.parse(localStorage.getItem('sf_user_info') || '{}').orgId}
+            />
+        </>
     )
 }

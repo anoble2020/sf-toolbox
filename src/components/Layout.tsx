@@ -15,7 +15,7 @@ interface LayoutProps {
 
 interface UserInfo {
     username: string
-    instance_url: string
+    orgDomain: string
 }
 
 export default function Layout({ children }: LayoutProps) {
@@ -114,7 +114,7 @@ export default function Layout({ children }: LayoutProps) {
                     </div>
                     <div className="flex items-center gap-2">
                         <ThemeToggle />
-                        <UserNav username={userInfo?.username || ''} orgDomain={userInfo?.instance_url || ''} />
+                        <UserNav username={userInfo?.username || ''} orgDomain={userInfo?.orgDomain || ''} />
                     </div>
                 </header>
 
