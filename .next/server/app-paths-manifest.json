@@ -1,7 +1,8 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/api/auth/refresh/route": "app/api/auth/refresh/route.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/auth/refresh/route": "app/api/auth/refresh/route.js",
   "/api/salesforce/logs/route": "app/api/salesforce/logs/route.js",
+  "/api/salesforce/logs/[id]/body/route": "app/api/salesforce/logs/[id]/body/route.js",
   "/(app)/logs/page": "app/(app)/logs/page.js"
 }

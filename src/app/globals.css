@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -69,4 +65,12 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.cm-line.bg-green-50 {
+  background-color: rgba(0, 255, 0, 0.1);
+}
+
+.cm-line.bg-red-50 {
+  background-color: rgba(255, 0, 0, 0.1);
 }
