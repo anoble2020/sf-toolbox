@@ -84,14 +84,19 @@ export async function GET(request: Request, { params }: { params: { objectType: 
                     throw new Error('No files found')
                 }
 
-                const files = data.records.map((record: any) => {
-                    console.log('Processing bundle file:', record.FilePath)
-                    return {
+                const files = data.records
+                    .map((record: any) => ({
                         name: record.FilePath.split('/').pop(),
                         content: record.Source,
                         type: getFileType(record.FilePath),
-                    }
-                })
+                        filePath: record.FilePath
+                    }))
+                    .sort((a, b) => {
+                        const order = ['js', 'html', 'css', 'xml'];
+                        const extA = a.filePath.split('.').pop() || '';
+                        const extB = b.filePath.split('.').pop() || '';
+                        return order.indexOf(extA) - order.indexOf(extB);
+                    });
 
                 console.log('Processed bundle files:', files)
 
@@ -106,11 +111,19 @@ export async function GET(request: Request, { params }: { params: { objectType: 
                     throw new Error('No files found')
                 }
 
-                const auraFiles = data.records.map((record: any) => ({
-                    name: record.FilePath ? record.FilePath.split('/').pop() : `${record.DefType} File`,
-                    content: record.Source,
-                    type: getFileType(record.FilePath || record.DefType),
-                }))
+                const auraFiles = data.records
+                    .map((record: any) => ({
+                        name: record.FilePath ? record.FilePath.split('/').pop() : `${record.DefType}`,
+                        content: record.Source,
+                        type: getFileType(record.FilePath || record.DefType),
+                        defType: record.DefType
+                    }))
+                    .sort((a, b) => {
+                        const order = ['COMPONENT', 'CONTROLLER', 'HELPER', 'STYLE', 'DOCUMENTATION', 'RENDERER', 'DESIGN', 'SVG'];
+                        const typeA = a.defType || '';
+                        const typeB = b.defType || '';
+                        return order.indexOf(typeA) - order.indexOf(typeB);
+                    });
 
                 result = {
                     Name: auraFiles[0].name.split('.')[0],
