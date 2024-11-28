@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { ConnectedOrg } from '@/lib/types'
 
 interface CallbackPageProps {
     searchParams: { [key: string]: string | string[] | undefined }
