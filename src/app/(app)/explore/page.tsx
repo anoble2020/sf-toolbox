@@ -73,6 +73,7 @@ export default function ExplorePage() {
     const [files, setFiles] = useState<FileData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
     const fileId = searchParams.get('id')
     const fileType = searchParams.get('type')
@@ -172,11 +173,11 @@ export default function ExplorePage() {
                         Select a file to view
                     </Button>
                     <FileSelectionModal
-                        open={isFileModalOpen}
-                        onOpenChange={setIsFileModalOpen}
+                        open={isModalOpen}
+                        onOpenChange={setIsModalOpen}
                         onFileSelect={(id, type) => {
                             router.push(`/explore?id=${id}&type=${type}`)
-                            setIsFileModalOpen(false)
+                            setIsModalOpen(false)
                         }}
                     />
                 </div>
@@ -205,8 +206,11 @@ export default function ExplorePage() {
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-semibold">{file?.Name}</h1>
                     <FileSelectionModal
+                        open={isModalOpen}
+                        onOpenChange={setIsModalOpen}
                         onFileSelect={(id, type) => {
                             router.push(`/explore?id=${id}&type=${type}`)
+                            setIsModalOpen(false)
                         }}
                     />
                 </div>
