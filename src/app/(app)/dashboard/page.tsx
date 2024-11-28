@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Code, Users, Bell, Database, Shield, Radio, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
-import { format } from 'date-fns'
+import { format, parseISO } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 
 const SalesforceDashboard = () => {
     const [timeRange] = useState('24h')
@@ -162,7 +163,11 @@ const SalesforceDashboard = () => {
                                                 parseInt(value.substring(8, 10)),
                                                 parseInt(value.substring(10, 12))
                                             );
-                                            return format(date, 'h:mm a', { timeZone: userTimezone });
+                                            return formatInTimeZone(
+                                                date,
+                                                userTimezone || 'UTC',
+                                                'h:mm a'
+                                            );
                                         } catch (e) {
                                             return '';
                                         }
@@ -182,7 +187,11 @@ const SalesforceDashboard = () => {
                                                 parseInt(value.substring(8, 10)),
                                                 parseInt(value.substring(10, 12))
                                             );
-                                            return format(date, 'MMM d, h:mm a', { timeZone: userTimezone });
+                                            return formatInTimeZone(
+                                                date,
+                                                userTimezone || 'UTC',
+                                                'MMM d, h:mm a'
+                                            );
                                         } catch (e) {
                                             return '';
                                         }
