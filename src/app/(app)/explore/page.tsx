@@ -40,10 +40,6 @@ interface FileData {
     lastFetched: number
 }
 
-interface ExplorePageProps {
-    searchParams: { [key: string]: string | string[] | undefined }
-}
-
 const fetchFiles = async () => {
     const refreshToken = localStorage.getItem('sf_refresh_token')
     if (!refreshToken) {
@@ -69,7 +65,12 @@ const fetchFiles = async () => {
     }
 }
 
-export default function ExplorePage({ searchParams }: ExplorePageProps) {
+type Props = {
+  params: { slug: string }
+  searchParams: { [key: string]: string | string[] | undefined }
+}
+
+export default function ExplorePage({ params, searchParams }: Props) {
     const router = useRouter()
     const [isFileModalOpen, setIsFileModalOpen] = useState(false)
     const [file, setFile] = useState<FileMetadata | null>(null)
@@ -78,9 +79,9 @@ export default function ExplorePage({ searchParams }: ExplorePageProps) {
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const fileId = searchParams.id as string | undefined
-    const fileType = searchParams.type as string | undefined
-    const coverageParam = searchParams.coverage as string | undefined
+    const fileId = typeof searchParams.id === 'string' ? searchParams.id : undefined
+    const fileType = typeof searchParams.type === 'string' ? searchParams.type : undefined
+    const coverageParam = typeof searchParams.coverage === 'string' ? searchParams.coverage : undefined
 
     useEffect(() => {
         if (!fileId || !fileType) {
