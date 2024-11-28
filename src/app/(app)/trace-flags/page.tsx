@@ -43,11 +43,14 @@ export default function TraceFlagsPage() {
                 const cachedData = localStorage.getItem('cached_trace_flags')
                 if (cachedData) {
                     const parsed = JSON.parse(cachedData)
+                    const debugLevels = parsed.levels as DebugLevel[]
+                    const users = parsed.users as SalesforceUser[]
+                    const flags = parsed.flags as TraceFlag[]
                     if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
                         if (mounted) {
-                            setTraceFlags(parsed.flags)
-                            setUsers(parsed.users)
-                            setDebugLevels(parsed.levels)
+                            setTraceFlags(flags)
+                            setUsers(users)
+                            setDebugLevels(debugLevels)
                             setLoading(false)
                         }
                         return
