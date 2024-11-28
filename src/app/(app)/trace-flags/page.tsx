@@ -37,63 +37,61 @@ export default function TraceFlagsPage() {
 
     useEffect(() => {
         let mounted = true
-
-        const loadData = async () => {
-            try {
-                const cachedData = localStorage.getItem('cached_trace_flags')
-                if (cachedData) {
-                    const parsed = JSON.parse(cachedData)
-                    const debugLevels = parsed.levels as DebugLevel[]
-                    const users = parsed.users as SalesforceUser[]
-                    const flags = parsed.flags as TraceFlag[]
-                    if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
-                        if (mounted) {
-                            setTraceFlags(flags)
-                            setUsers(users)
-                            setDebugLevels(debugLevels)
-                            setLoading(false)
-                        }
-                        return
-                    }
-                }
-
-                const [flags, usersList, levels] = await Promise.all([
-                    queryTraceFlags(),
-                    queryUsers(),
-                    queryDebugLevels(),
-                ])
-
-                if (mounted) {
-                    setTraceFlags(flags)
-                    setUsers(usersList)
-                    setDebugLevels(levels)
-                }
-
-                const cacheData = {
-                    flags,
-                    users: usersList,
-                    levels,
-                    lastFetched: Date.now(),
-                }
-                localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
-            } catch (error: unknown) {
-                if (mounted) {
-                    console.error('Failed to load data:', error)
-                    setError(error instanceof Error ? error.message : 'Failed to load data')
-                }
-            } finally {
-                if (mounted) {
-                    setLoading(false)
-                }
-            }
-        }
-
-        loadData()
-
+        loadData(mounted)
         return () => {
             mounted = false
         }
     }, [])
+
+    const loadData = async (mounted?: boolean) => {
+      try {
+          const cachedData = localStorage.getItem('cached_trace_flags')
+          if (cachedData) {
+              const parsed = JSON.parse(cachedData)
+              const debugLevels = parsed.levels as DebugLevel[]
+              const users = parsed.users as SalesforceUser[]
+              const flags = parsed.flags as TraceFlag[]
+              if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
+                  if (mounted) {
+                      setTraceFlags(flags)
+                      setUsers(users)
+                      setDebugLevels(debugLevels)
+                      setLoading(false)
+                  }
+                  return
+              }
+          }
+
+          const [flags, usersList, levels] = await Promise.all([
+              queryTraceFlags(),
+              queryUsers(),
+              queryDebugLevels(),
+          ])
+
+          if (mounted) {
+              setTraceFlags(flags)
+              setUsers(usersList)
+              setDebugLevels(levels)
+          }
+
+          const cacheData = {
+              flags,
+              users: usersList,
+              levels,
+              lastFetched: Date.now(),
+          }
+          localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
+      } catch (error: unknown) {
+          if (mounted) {
+              console.error('Failed to load data:', error)
+              setError(error instanceof Error ? error.message : 'Failed to load data')
+          }
+      } finally {
+          if (mounted) {
+              setLoading(false)
+          }
+      }
+  }
 
     const handleRenew = async (id: string) => {
         try {
