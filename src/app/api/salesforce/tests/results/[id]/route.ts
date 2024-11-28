@@ -1,18 +1,17 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
-    const { searchParams } = new URL(request.url)
-    const instance_url = searchParams.get('instance_url')
-    const testRunId = params.id.replace(/"/g, '')
+export async function GET(request: NextRequest) {
+    try {
+        // Get test run ID from URL path
+        const segments = request.nextUrl.pathname.split('/')
+        const testRunId = segments[segments.length - 1].replace(/"/g, '')
+        
+        const instance_url = request.nextUrl.searchParams.get('instance_url')
+        const authorization = request.headers.get('authorization')
 
-    if (!instance_url) {
-        return NextResponse.json({ error: 'Missing instance URL' }, { status: 400 })
-    }
-
-    const authorization = request.headers.get('authorization')
-    if (!authorization) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+        if (!instance_url || !authorization) {
+            return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
+        }
 
     try {
         console.log('Checking status for test run:', testRunId)
@@ -21,11 +20,10 @@ export async function GET(request: Request, { params }: { params: { id: string }
         const jobStatusResponse = await fetch(
             `${instance_url}/services/data/v59.0/tooling/query/?q=` +
                 encodeURIComponent(`
-        SELECT Id, Status, ClassesCompleted, ClassesEnqueued,
-               MethodsCompleted, MethodsEnqueued, TestTime
-        FROM ApexTestRunResult
-        WHERE AsyncApexJobId = '${testRunId}'
-      `),
+                    SELECT Id, Status, ClassesCompleted, ClassesEnqueued, MethodsCompleted, MethodsEnqueued, TestTime
+                    FROM ApexTestRunResult
+                    WHERE AsyncApexJobId = '${testRunId}'
+                `),
             {
                 headers: {
                     Authorization: authorization,
@@ -48,13 +46,11 @@ export async function GET(request: Request, { params }: { params: { id: string }
             const resultsResponse = await fetch(
                 `${instance_url}/services/data/v59.0/tooling/query/?q=` +
                     encodeURIComponent(`
-          SELECT Id, AsyncApexJobId, StackTrace, Message,
-                 MethodName, Outcome, ApexClass.Name, 
-                 RunTime, TestTimestamp
-          FROM ApexTestResult 
-          WHERE AsyncApexJobId = '${testRunId}'
-          ORDER BY TestTimestamp DESC
-        `),
+                        SELECT Id, AsyncApexJobId, StackTrace, Message, MethodName, Outcome, ApexClass.Name, RunTime, TestTimestamp
+                        FROM ApexTestResult 
+                        WHERE AsyncApexJobId = '${testRunId}'
+                        ORDER BY TestTimestamp DESC
+                    `),
                 {
                     headers: {
                         Authorization: authorization,
@@ -75,14 +71,13 @@ export async function GET(request: Request, { params }: { params: { id: string }
             const coverageResponse = await fetch(
                 `${instance_url}/services/data/v59.0/tooling/query/?q=` +
                     encodeURIComponent(`
-          SELECT ApexClassOrTriggerId, NumLinesCovered, 
-                 NumLinesUncovered, Coverage
-          FROM ApexCodeCoverageAggregate
-          WHERE ApexClassOrTriggerId IN (
-            SELECT ApexClassId FROM ApexTestResult 
-            WHERE AsyncApexJobId = '${testRunId}'
-          )
-        `),
+                        SELECT ApexClassOrTriggerId, NumLinesCovered, NumLinesUncovered, Coverage
+                        FROM ApexCodeCoverageAggregate
+                        WHERE ApexClassOrTriggerId IN (
+                            SELECT ApexClassId FROM ApexTestResult 
+                            WHERE AsyncApexJobId = '${testRunId}'
+                        )
+                    `),
                 {
                     headers: {
                         Authorization: authorization,

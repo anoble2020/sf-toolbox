@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-type Props = {
-    params: {
-        objectType: string
-        id: string
-    }
-}
-
-export async function GET(
-    request: NextRequest,
-    { params }: Props
-) {
-    const objectType = await params.objectType
-    const id = await params.id
-
+export async function GET(request: NextRequest) {
     try {
-        const { searchParams } = new URL(request.url)
-        const instance_url = searchParams.get('instance_url')
+        // Get params from the URL segments
+        const segments = request.nextUrl.pathname.split('/')
+        const objectType = segments[segments.length - 2]
+        const id = segments[segments.length - 1]
+        
+        const instance_url = request.nextUrl.searchParams.get('instance_url')
         const authorization = request.headers.get('authorization')
 
         if (!instance_url || !authorization) {
@@ -33,24 +24,21 @@ export async function GET(
                 endpoint = `/services/data/v59.0/tooling/sobjects/ApexTrigger/${id}`
                 break
             case 'lightningcomponentbundle':
-                endpoint =
-                    `/services/data/v59.0/tooling/query/?q=` +
+                endpoint = `/services/data/v59.0/tooling/query/?q=` +
                     encodeURIComponent(`
-          SELECT Id, Source, FilePath
-          FROM LightningComponentResource
-          WHERE LightningComponentBundleId = '${id}'
-        `)
-                console.log('LWC Query:', endpoint)
+                        SELECT Id, Source, FilePath
+                        FROM LightningComponentResource
+                        WHERE LightningComponentBundleId = '${id}'
+                    `)
                 break
             case 'auradefinitionbundle':
-                endpoint =
-                    `/services/data/v59.0/tooling/query/?q=` +
+                endpoint = `/services/data/v59.0/tooling/query/?q=` +
                     encodeURIComponent(`
-          SELECT Id, Source, DefType
-          FROM AuraDefinition
-          WHERE AuraDefinitionBundleId = '${id}'
-          AND DefType IN ('COMPONENT', 'CONTROLLER', 'HELPER', 'STYLE', 'DOCUMENTATION', 'RENDERER')
-        `)
+                        SELECT Id, Source, DefType
+                        FROM AuraDefinition
+                        WHERE AuraDefinitionBundleId = '${id}'
+                        AND DefType IN ('COMPONENT', 'CONTROLLER', 'HELPER', 'STYLE', 'DOCUMENTATION', 'RENDERER')
+                    `)
                 break
             default:
                 return NextResponse.json({ error: 'Invalid object type' }, { status: 400 })
@@ -151,10 +139,8 @@ export async function GET(
     } catch (error) {
         console.error('Error:', error)
         return NextResponse.json(
-            {
-                error: error instanceof Error ? error.message : 'Internal server error',
-            },
-            { status: 500 },
+            { error: error instanceof Error ? error.message : 'Internal server error' },
+            { status: 500 }
         )
     }
 }
