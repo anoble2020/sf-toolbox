@@ -9,6 +9,14 @@ import { X, Loader2 } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
 import { BundleViewer } from '@/components/BundleViewer'
 import { CACHE_DURATIONS } from '@/lib/constants'
+
+interface FileItem {
+    Id: string
+    Name: string
+    Type: string
+    LastModifiedDate: string
+}
+
 interface FileMetadata {
     Id: string
     Name: string
