@@ -7,14 +7,12 @@ import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { ConnectedOrg } from '@/lib/types'
 
-interface CallbackContentProps {
-    code: string | null
-    error: string | null
-    error_description: string | null
-}
-
-function CallbackContent({ code, error, error_description }: CallbackContentProps) {
+function CallbackContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const code = searchParams.get('code')
+    const error = searchParams.get('error')
+    const error_description = searchParams.get('error_description')
 
     useEffect(() => {
         if (error) {
@@ -127,19 +125,13 @@ function CallbackContent({ code, error, error_description }: CallbackContentProp
 }
 
 export default function CallbackPage() {
-    const searchParams = useSearchParams()
-    
     return (
         <Suspense fallback={
             <div className="flex items-center justify-center min-h-screen">
                 <Loader2 className="w-8 h-8 animate-spin" />
             </div>
         }>
-            <CallbackContent 
-                code={searchParams.get('code')}
-                error={searchParams.get('error')}
-                error_description={searchParams.get('error_description')}
-            />
+            <CallbackContent />
         </Suspense>
     )
 }
