@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+type Props = {
+    params: {
+        objectType: string
+        id: string
+    }
+}
+
 export async function GET(
     request: NextRequest,
-    { params }: { params: { objectType: string; id: string } }
+    { params }: Props
 ) {
     const objectType = await params.objectType
     const id = await params.id
