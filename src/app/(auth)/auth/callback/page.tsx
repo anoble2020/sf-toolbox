@@ -5,15 +5,12 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { ConnectedOrg } from '@/lib/types'
+import { Suspense } from 'react'
 
-console.log('CallbackPage component defined')
-
-export default function CallbackPage() {
-    console.log('CallbackPage render')
+function CallbackContent() {
     const searchParams = useSearchParams()
     const router = useRouter()
-
+    
     useEffect(() => {
         console.log('CallbackPage mounted')
         const code = searchParams.get('code')
@@ -122,11 +119,20 @@ export default function CallbackPage() {
     }, [searchParams, router])
 
     return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-                <h2 className="text-xl font-semibold mb-4">Authenticating...</h2>
-                      <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+        <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="w-8 h-8 animate-spin" />
         </div>
+    )
+}
+
+export default function CallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+        }>
+            <CallbackContent />
+        </Suspense>
     )
 }
