@@ -30,7 +30,8 @@ export default function TraceFlagsPage() {
     const [debugLevels, setDebugLevels] = useState<DebugLevel[]>([])
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
-    const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+    const [sortField, setSortField] = useState<keyof TraceFlag>('ExpirationDate')
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
