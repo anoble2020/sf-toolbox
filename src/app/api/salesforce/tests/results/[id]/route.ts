@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
         }
 
-    try {
         console.log('Checking status for test run:', testRunId)
 
         // First, check the ApexTestRunResult status
