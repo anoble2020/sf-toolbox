@@ -1,25 +1,28 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
-import { Suspense } from 'react'
 import { ConnectedOrg } from '@/lib/types'
 
-function CallbackContent() {
-    const searchParams = useSearchParams()
-    const router = useRouter()
-    
-    useEffect(() => {
-        console.log('CallbackPage mounted')
-        const code = searchParams.get('code')
-        const error = searchParams.get('error')
+interface CallbackPageProps {
+    searchParams: {
+        code?: string
+        error?: string
+        error_description?: string
+    }
+}
 
+export default function CallbackPage({ searchParams }: CallbackPageProps) {
+    const router = useRouter()
+    const { code, error, error_description } = searchParams
+
+    useEffect(() => {
         if (error) {
             console.error('OAuth Error:', error)
-            console.error('Error Description:', searchParams.get('error_description'))
+            console.error('Error Description:', error_description)
             router.push('/auth')
             return
         }
@@ -117,23 +120,11 @@ function CallbackContent() {
                 console.error('Fetch error:', error)
                 router.push('/auth')
             })
-    }, [searchParams, router])
+    }, [code, error, error_description, router])
 
     return (
         <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="w-8 h-8 animate-spin" />
         </div>
-    )
-}
-
-export default function CallbackPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="w-8 h-8 animate-spin" />
-            </div>
-        }>
-            <CallbackContent />
-        </Suspense>
     )
 }

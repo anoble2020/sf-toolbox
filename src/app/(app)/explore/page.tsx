@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { CodeViewer } from '@/components/CodeViewer'
 import { FileSelectionModal } from '@/components/FileSelectionModal'
 import { Button } from '@/components/ui/button'
@@ -40,6 +40,14 @@ interface FileData {
     lastFetched: number
 }
 
+interface ExplorePageProps {
+    searchParams: {
+        id?: string
+        type?: string
+        coverage?: string
+    }
+}
+
 const fetchFiles = async () => {
     const refreshToken = localStorage.getItem('sf_refresh_token')
     if (!refreshToken) {
@@ -65,9 +73,8 @@ const fetchFiles = async () => {
     }
 }
 
-export default function ExplorePage() {
+export default function ExplorePage({ searchParams }: ExplorePageProps) {
     const router = useRouter()
-    const searchParams = useSearchParams()
     const [isFileModalOpen, setIsFileModalOpen] = useState(false)
     const [file, setFile] = useState<FileMetadata | null>(null)
     const [files, setFiles] = useState<FileData | null>(null)
@@ -75,11 +82,10 @@ export default function ExplorePage() {
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const fileId = searchParams.get('id')
-    const fileType = searchParams.get('type')
-    const coverageParam = searchParams.get('coverage')
+    const fileId = searchParams.id
+    const fileType = searchParams.type
+    const coverageParam = searchParams.coverage
 
-    // Combine the file fetching and coverage parsing into a single effect
     useEffect(() => {
         if (!fileId || !fileType) {
             setFile(null)
@@ -98,7 +104,6 @@ export default function ExplorePage() {
             }
         }
 
-        // Only fetch if we have valid params
         const fetchData = async () => {
             try {
                 setLoading(true)
@@ -138,14 +143,11 @@ export default function ExplorePage() {
     }, [fileId, fileType, coverageParam])
 
     const handleClose = () => {
-        // Clear the file state
         setFile(null)
         setError(null)
-        // Replace the current URL with the base path
         router.replace('/explore')
     }
 
-    // Add logging for render phase
     console.log('ExplorePage render:', {
         file: file?.Id,
         coverage: file?.Coverage,
