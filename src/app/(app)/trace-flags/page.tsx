@@ -165,9 +165,9 @@ export default function TraceFlagsPage() {
 
     const sortTraceFlags = (flags: TraceFlag[], direction: SortDirection) => {
         return [...flags].sort((a, b) => {
-            const nameA = a.TracedEntity.Name.toLowerCase()
-            const nameB = b.TracedEntity.Name.toLowerCase()
-            return direction === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
+            const nameA = a.TracedEntity?.Name.toLowerCase()
+            const nameB = b.TracedEntity?.Name.toLowerCase()
+            return direction === 'asc' ? nameA?.localeCompare(nameB) : nameB?.localeCompare(nameA)
         })
     }
 
