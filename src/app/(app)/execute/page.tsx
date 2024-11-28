@@ -9,13 +9,7 @@ import { refreshAccessToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { Save, X, Trash2 } from 'lucide-react'
 import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
-
-interface SavedCodeBlock {
-    id: string
-    name: string
-    code: string
-    lastModified: string
-}
+import { SavedCodeBlock } from '@/lib/types'
 
 export default function ExecutePage() {
     const [code, setCode] = useState('')
@@ -43,12 +37,13 @@ export default function ExecutePage() {
         setSavedBlocks(blocks)
     }
 
-    const handleSaveNew = (name: string) => {
+    const handleSave = (name: string) => {
         const newBlock: SavedCodeBlock = {
             id: crypto.randomUUID(),
             name,
             code,
             lastModified: new Date().toISOString(),
+            orgId
         }
 
         const updated = [...savedBlocks, newBlock]
@@ -210,7 +205,7 @@ export default function ExecutePage() {
             <SaveCodeBlockModal
                 isOpen={isSaveModalOpen}
                 onClose={() => setSaveModalOpen(false)}
-                onSave={handleSaveNew}
+                onSave={handleSave}
             />
 
             <SavedBlocksDrawer
