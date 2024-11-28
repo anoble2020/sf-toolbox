@@ -6,6 +6,7 @@ import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { Suspense } from 'react'
+import { ConnectedOrg } from '@/lib/types'
 
 function CallbackContent() {
     const searchParams = useSearchParams()
