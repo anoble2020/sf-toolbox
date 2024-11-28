@@ -23,7 +23,7 @@ interface ApexLog {
 
 interface DebugLevel {
     Id: string
-    DeveloperName: string
+    MasterLabel: string
 }
 
 interface TraceFlag {
