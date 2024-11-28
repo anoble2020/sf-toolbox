@@ -8,16 +8,16 @@ import { Loader2 } from 'lucide-react'
 import { ConnectedOrg } from '@/lib/types'
 
 interface CallbackPageProps {
-    searchParams: {
-        code?: string
-        error?: string
-        error_description?: string
-    }
+    searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export default function CallbackPage({ searchParams }: CallbackPageProps) {
     const router = useRouter()
-    const { code, error, error_description } = searchParams
+    
+    // Type assertions for searchParams
+    const code = searchParams.code as string | undefined
+    const error = searchParams.error as string | undefined
+    const error_description = searchParams.error_description as string | undefined
 
     useEffect(() => {
         if (error) {

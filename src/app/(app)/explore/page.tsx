@@ -41,11 +41,7 @@ interface FileData {
 }
 
 interface ExplorePageProps {
-    searchParams: {
-        id?: string
-        type?: string
-        coverage?: string
-    }
+    searchParams: { [key: string]: string | string[] | undefined }
 }
 
 const fetchFiles = async () => {
@@ -82,9 +78,9 @@ export default function ExplorePage({ searchParams }: ExplorePageProps) {
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const fileId = searchParams.id
-    const fileType = searchParams.type
-    const coverageParam = searchParams.coverage
+    const fileId = searchParams.id as string | undefined
+    const fileType = searchParams.type as string | undefined
+    const coverageParam = searchParams.coverage as string | undefined
 
     useEffect(() => {
         if (!fileId || !fileType) {
