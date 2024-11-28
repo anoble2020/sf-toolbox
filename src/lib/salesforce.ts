@@ -120,7 +120,7 @@ export const queryLogs = async (currentUserOnly = false): Promise<ApexLog[]> => 
                 }
             })
             .filter(Boolean)
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error in queryLogs:', error)
         throw error
     }
@@ -267,7 +267,7 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
 
         const data = await response.json()
         console.log('Trace flag created successfully:', data)
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error creating trace flag:', error)
         throw error
     }
@@ -333,7 +333,7 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
         }
 
         return data.records || []
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error in queryTraceFlags:', error)
         throw error
     }
@@ -378,7 +378,7 @@ export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
             const error = await response.json()
             throw new Error(`Failed to renew trace flag: ${error.message || 'Unknown error'}`)
         }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error in renewTraceFlag:', error)
         throw error
     }
@@ -410,7 +410,7 @@ export const deleteTraceFlag = async (traceFlagId: string): Promise<void> => {
             const error = await response.json()
             throw new Error(`Failed to delete trace flag: ${error.message || 'Unknown error'}`)
         }
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error in deleteTraceFlag:', error)
         throw error
     }
@@ -457,7 +457,7 @@ export const queryUsers = async (): Promise<SalesforceUser[]> => {
 
         const data = await response.json()
         return data.records || []
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error querying users:', error)
         throw error
     }
@@ -492,7 +492,7 @@ export const queryDebugLevels = async (): Promise<DebugLevel[]> => {
 
         const data = await response.json()
         return data.records || []
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error querying debug levels:', error)
         throw error
     }

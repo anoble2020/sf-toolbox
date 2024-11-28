@@ -84,7 +84,7 @@ export default function ExplorePage() {
         if (coverageParam) {
             try {
                 coverage = JSON.parse(decodeURIComponent(coverageParam))
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error('Failed to parse coverage data:', e)
             }
         }
@@ -117,7 +117,7 @@ export default function ExplorePage() {
                     Coverage: coverage,
                     files: data.files,
                 })
-            } catch (error) {
+            } catch (error: unknown) {
                 console.error('Error:', error)
                 setError(error instanceof Error ? error.message : 'Failed to fetch file')
             } finally {

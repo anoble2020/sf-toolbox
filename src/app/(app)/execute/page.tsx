@@ -137,7 +137,6 @@ export default function ExecutePage() {
                         },
                     })
                 } else {
-                    // For non-success statuses, show as error with the status message
                     toast.error(result.logStatus || 'Execution failed', {
                         action: {
                             label: 'View Log',
@@ -148,9 +147,9 @@ export default function ExecutePage() {
             } else {
                 toast.error(result.exceptionMessage || result.compileProblem || 'Failed to execute code')
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Execute error:', error)
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Failed to execute code')
         } finally {
             setIsExecuting(false)
         }

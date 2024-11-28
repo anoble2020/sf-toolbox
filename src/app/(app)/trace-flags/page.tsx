@@ -72,7 +72,7 @@ export default function TraceFlagsPage() {
                     lastFetched: Date.now(),
                 }
                 localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
-            } catch (error) {
+            } catch (error: unknown) {
                 if (mounted) {
                     console.error('Failed to load data:', error)
                     setError(error instanceof Error ? error.message : 'Failed to load data')
@@ -122,7 +122,7 @@ export default function TraceFlagsPage() {
                 // If no cache exists, fetch fresh data
                 await loadData()
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to renew trace flag:', error)
         } finally {
             setRefreshing(false)
@@ -153,7 +153,7 @@ export default function TraceFlagsPage() {
             } else {
                 await loadData()
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to delete trace flag:', error)
             setError(error instanceof Error ? error.message : 'Failed to delete trace flag')
         } finally {
@@ -218,7 +218,7 @@ export default function TraceFlagsPage() {
             } else {
                 await loadData()
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to create trace flag:', error)
             toast.error(error instanceof Error ? error.message : 'Failed to create trace flag')
         }

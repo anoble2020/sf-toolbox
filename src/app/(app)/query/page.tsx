@@ -188,7 +188,7 @@ export default function QueryPage() {
         try {
             await navigator.clipboard.writeText(text)
             toast('Record Id copied to clipboard')
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Failed to copy:', err)
             toast('Failed to copy Id to clipboard')
         }

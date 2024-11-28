@@ -82,7 +82,7 @@ export default function CallbackPage() {
                             console.log('Trace flag created successfully')
                             toast.success('Trace flag created successfully for your user')
                 })
-                        .catch((error) => {
+                        .catch((error: unknown) => {
                             if (!error.message?.includes('trace flag already exists')) {
                                 console.error('Failed to create trace flag:', error)
                                 toast.error('Failed to create trace flag for your user')
@@ -115,7 +115,7 @@ export default function CallbackPage() {
                 console.log('Stored tokens, redirecting to /dashboard...')
                 router.push('/dashboard')
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
                 console.error('Fetch error:', error)
                 router.push('/auth')
             })

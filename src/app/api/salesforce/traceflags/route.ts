@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         }
 
         return NextResponse.json(data)
-    } catch (error) {
+    } catch (error: unknown) {
         console.error('Error creating trace flag:', error)
         return NextResponse.json({ error: 'Internal server error', details: error.message }, { status: 500 })
     }

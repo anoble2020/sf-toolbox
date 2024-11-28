@@ -27,7 +27,7 @@ export function AddTraceFlagModal({ isOpen, onClose, onSubmit, users, debugLevel
             setIsSubmitting(true)
             await onSubmit(selectedUser, selectedDebugLevel)
             onClose()
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Failed to create trace flag:', error)
         } finally {
             setIsSubmitting(false)

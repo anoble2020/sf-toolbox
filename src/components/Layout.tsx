@@ -28,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
         if (userInfoStr) {
             try {
                 setUserInfo(JSON.parse(userInfoStr))
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error('Failed to parse user info:', e)
             }
         }
