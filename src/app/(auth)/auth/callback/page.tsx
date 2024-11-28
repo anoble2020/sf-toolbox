@@ -1,22 +1,20 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { ConnectedOrg } from '@/lib/types'
 
-interface CallbackPageProps {
-    searchParams: { [key: string]: string | string[] | undefined }
+interface CallbackContentProps {
+    code: string | null
+    error: string | null
+    error_description: string | null
 }
 
-export default function CallbackPage({ searchParams }: CallbackPageProps) {
+function CallbackContent({ code, error, error_description }: CallbackContentProps) {
     const router = useRouter()
-    
-    // Type assertions for searchParams
-    const code = searchParams.code as string | undefined
-    const error = searchParams.error as string | undefined
-    const error_description = searchParams.error_description as string | undefined
 
     useEffect(() => {
         if (error) {
@@ -125,5 +123,23 @@ export default function CallbackPage({ searchParams }: CallbackPageProps) {
         <div className="flex items-center justify-center min-h-screen">
             <Loader2 className="w-8 h-8 animate-spin" />
         </div>
+    )
+}
+
+export default function CallbackPage() {
+    const searchParams = useSearchParams()
+    
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+        }>
+            <CallbackContent 
+                code={searchParams.get('code')}
+                error={searchParams.get('error')}
+                error_description={searchParams.get('error_description')}
+            />
+        </Suspense>
     )
 }

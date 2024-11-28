@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CodeViewer } from '@/components/CodeViewer'
 import { FileSelectionModal } from '@/components/FileSelectionModal'
 import { Button } from '@/components/ui/button'
@@ -65,13 +65,9 @@ const fetchFiles = async () => {
     }
 }
 
-type Props = {
-  params: Record<string, string>
-  searchParams: { [key: string]: string | string[] | undefined }
-}
-
-export default function ExplorePage({ params, searchParams }: Props) {
+function ExploreContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [isFileModalOpen, setIsFileModalOpen] = useState(false)
     const [file, setFile] = useState<FileMetadata | null>(null)
     const [files, setFiles] = useState<FileData | null>(null)
@@ -79,9 +75,9 @@ export default function ExplorePage({ params, searchParams }: Props) {
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
-    const fileId = typeof searchParams.id === 'string' ? searchParams.id : undefined
-    const fileType = typeof searchParams.type === 'string' ? searchParams.type : undefined
-    const coverageParam = typeof searchParams.coverage === 'string' ? searchParams.coverage : undefined
+    const fileId = searchParams.get('id')
+    const fileType = searchParams.get('type')
+    const coverageParam = searchParams.get('coverage')
 
     useEffect(() => {
         if (!fileId || !fileType) {
@@ -238,5 +234,17 @@ export default function ExplorePage({ params, searchParams }: Props) {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function ExplorePage() {
+    return (
+        <Suspense fallback={
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+            </div>
+        }>
+            <ExploreContent />
+        </Suspense>
     )
 }
