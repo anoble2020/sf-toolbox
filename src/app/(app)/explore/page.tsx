@@ -66,7 +66,7 @@ const fetchFiles = async () => {
 }
 
 type Props = {
-  params: { slug: string }
+  params: Record<string, string>
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
