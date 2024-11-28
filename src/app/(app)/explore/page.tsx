@@ -126,7 +126,7 @@ export default function ExplorePage() {
                     Coverage: coverage,
                     files: data.files,
                 })
-            } catch (error: unknown) {
+            } catch (error: any) {
                 console.error('Error:', error)
                 setError(error instanceof Error ? error.message : 'Failed to fetch file')
             } finally {

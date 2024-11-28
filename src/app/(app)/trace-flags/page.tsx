@@ -81,7 +81,7 @@ export default function TraceFlagsPage() {
               lastFetched: Date.now(),
           }
           localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
-      } catch (error: unknown) {
+      } catch (error: any) {
           if (mounted) {
               console.error('Failed to load data:', error)
               setError(error instanceof Error ? error.message : 'Failed to load data')
@@ -124,7 +124,7 @@ export default function TraceFlagsPage() {
                 // If no cache exists, fetch fresh data
                 await loadData()
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Failed to renew trace flag:', error)
         } finally {
             setRefreshing(false)
@@ -155,7 +155,7 @@ export default function TraceFlagsPage() {
             } else {
                 await loadData()
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Failed to delete trace flag:', error)
             setError(error instanceof Error ? error.message : 'Failed to delete trace flag')
         } finally {
@@ -165,9 +165,9 @@ export default function TraceFlagsPage() {
 
     const sortTraceFlags = (flags: TraceFlag[], direction: SortDirection) => {
         return [...flags].sort((a, b) => {
-            const nameA = a.TracedEntity?.Name.toLowerCase()
-            const nameB = b.TracedEntity?.Name.toLowerCase()
-            return direction === 'asc' ? nameA?.localeCompare(nameB) : nameB?.localeCompare(nameA)
+            const nameA = a.TracedEntity?.Name?.toLowerCase() || ''
+            const nameB = b.TracedEntity?.Name?.toLowerCase() || ''
+            return direction === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
         })
     }
 
@@ -196,9 +196,11 @@ export default function TraceFlagsPage() {
                 const debugLevel = parsed.levels.find((d: DebugLevel) => d.Id === debugLevelId)
 
                 // Structure the new flag to match the expected format
-                const structuredFlag = {
-                    ...newFlag,
-                    Id: userId,
+                const structuredFlag: TraceFlag = {
+                    ...((newFlag as unknown) as Record<string, any>),
+                    Id: (newFlag as any).Id,
+                    TracedEntityId: userId,
+                    ExpirationDate: (newFlag as any).ExpirationDate,
                     TracedEntity: {
                         Name: user?.Name || 'Unknown User',
                     },
@@ -220,7 +222,7 @@ export default function TraceFlagsPage() {
             } else {
                 await loadData()
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Failed to create trace flag:', error)
             toast.error(error instanceof Error ? error.message : 'Failed to create trace flag')
         }

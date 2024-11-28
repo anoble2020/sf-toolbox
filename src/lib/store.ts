@@ -16,10 +16,10 @@ export const useApiLimits = create<ApiLimitsState>((set) => ({
     updateLimits: (used: number, total: number) => {
         console.log('Store updateLimits called:', { used, total })
         set((state) => {
-            const newState = { limits: { used, total } }
+            const newState = { ...state, limits: { used, total } }
             console.log('Setting new state:', newState)
             return newState
-        }, true) // Force update
+        }, true )
     },
 }))
 

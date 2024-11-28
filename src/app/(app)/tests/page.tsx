@@ -81,7 +81,7 @@ export default function TestsPage() {
                 lastFetched: Date.now(),
             }
             localStorage.setItem('cached_test_classes', JSON.stringify(cacheData))
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Error:', error)
             setError(error instanceof Error ? error.message : 'An error occurred')
         } finally {
@@ -151,7 +151,7 @@ export default function TestsPage() {
 
             // Start polling
             pollTestResults(responseData.testRunId, authResult.instance_url, authResult.access_token)
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Error in runTests:', error)
 
             // Clean up running state
@@ -237,7 +237,7 @@ export default function TestsPage() {
                 const totalCount = data.results?.length || 0
                 toast.success(`Test run completed: ${passCount}/${totalCount} tests passed`)
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Error polling test results:', error)
 
             setTestRuns((prev) =>

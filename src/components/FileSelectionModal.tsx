@@ -19,6 +19,7 @@ interface FileItem {
     Type: string
     Managed: boolean
     LastModifiedDate: string
+    Path?: string
     SubComponents?: FileItem[]
 }
 

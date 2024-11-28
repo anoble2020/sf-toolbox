@@ -99,10 +99,13 @@ export function LogsTable({
 
     // Sort logs
     const sortedLogs = [...logs].sort((a, b) => {
+        const aValue = a[sortConfig.key] ?? '';
+        const bValue = b[sortConfig.key] ?? '';
+        
         if (sortConfig.direction === 'asc') {
-            return a[sortConfig.key] > b[sortConfig.key] ? 1 : -1
+            return aValue > bValue ? 1 : -1;
         }
-        return a[sortConfig.key] < b[sortConfig.key] ? 1 : -1
+        return aValue < bValue ? 1 : -1;
     })
 
     // Get current page logs

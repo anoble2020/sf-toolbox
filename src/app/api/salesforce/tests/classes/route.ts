@@ -74,12 +74,11 @@ export async function GET(request: Request) {
 
         // Get all classes first
         const classes = data.compositeResponse[0].body.records
-
         // Filter test classes by examining the Body content
-        const testClasses = classes.filter((cls) => cls.Body.includes('@isTest') || cls.Body.includes('@IsTest'))
+        const testClasses = classes.filter((cls: { Body: string }) => cls.Body.includes('@isTest') || cls.Body.includes('@IsTest'))
 
         // Now get the methods for just the test classes
-        const testClassIds = testClasses.map((cls) => `'${cls.Id}'`).join(',')
+        const testClassIds = testClasses.map((cls: { Id: string }) => `'${cls.Id}'`).join(',')
 
         if (testClassIds.length === 0) {
             return NextResponse.json([])
@@ -113,7 +112,7 @@ export async function GET(request: Request) {
         }
 
         // Process and combine the results using SymbolTable to get test methods
-        const classesWithMethods = testClasses.map((cls) => {
+        const classesWithMethods = testClasses.map((cls: { Id: string, Name: string, SymbolTable: { methods: { annotations: { name: string }[] }[] } }) => {
             const methods = cls.SymbolTable?.methods || []
             const testMethods = methods.filter((method) =>
                 method.annotations?.some(
@@ -124,7 +123,7 @@ export async function GET(request: Request) {
             return {
                 Id: cls.Id,
                 Name: cls.Name,
-                testMethods: testMethods.map((method) => method.name),
+                testMethods: testMethods.map((method) => method.annotations.map(ann => ann.name)),
             }
         })
 

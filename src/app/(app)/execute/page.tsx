@@ -142,7 +142,7 @@ export default function ExecutePage() {
             } else {
                 toast.error(result.exceptionMessage || result.compileProblem || 'Failed to execute code')
             }
-        } catch (error: unknown) {
+        } catch (error: any) {
             console.error('Execute error:', error)
             toast.error(error instanceof Error ? error.message : 'Failed to execute code')
         } finally {

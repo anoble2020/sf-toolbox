@@ -47,7 +47,7 @@ export async function PATCH(request: NextRequest) {
         }
 
         return new Response(null, { status: 204 })
-    } catch (error: unknown) {
+    } catch (error: any) {
         console.error('Error renewing trace flag:', error)
         return new Response(JSON.stringify({ error: 'Failed to renew trace flag' }), {
             status: 500,
@@ -92,7 +92,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         return new Response(null, { status: 204 })
-    } catch (error: unknown) {
+    } catch (error: any) {
         console.error('Error deleting trace flag:', error)
         return new Response(JSON.stringify({ error: 'Failed to delete trace flag' }), {
             status: 500,

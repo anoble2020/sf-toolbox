@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { ConnectedOrg } from '@/lib/types'
 
 console.log('CallbackPage component defined')
 
@@ -82,7 +83,7 @@ export default function CallbackPage() {
                             console.log('Trace flag created successfully')
                             toast.success('Trace flag created successfully for your user')
                 })
-                        .catch((error: unknown) => {
+                        .catch((error: any) => {
                             if (!error.message?.includes('trace flag already exists')) {
                                 console.error('Failed to create trace flag:', error)
                                 toast.error('Failed to create trace flag for your user')
@@ -104,10 +105,9 @@ export default function CallbackPage() {
                     refreshToken: data.tokens.refresh_token,
                     lastAccessed: new Date().toISOString()
                 }
-
                 // Update or add the org
-                const updatedOrgs = connectedOrgs.some(org => org.orgId === newOrg.orgId)
-                    ? connectedOrgs.map(org => org.orgId === newOrg.orgId ? newOrg : org)
+                const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
+                    ? connectedOrgs.map((org: ConnectedOrg) => org.orgId === newOrg.orgId ? newOrg : org)
                     : [...connectedOrgs, newOrg]
 
                 localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
@@ -115,7 +115,7 @@ export default function CallbackPage() {
                 console.log('Stored tokens, redirecting to /dashboard...')
                 router.push('/dashboard')
             })
-            .catch((error: unknown) => {
+            .catch((error: any) => {
                 console.error('Fetch error:', error)
                 router.push('/auth')
             })

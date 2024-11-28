@@ -24,6 +24,7 @@ interface CollapsibleLine {
     isCollapsible?: boolean
     nestLevel?: number
     isSelected?: boolean
+    originalIndex?: number
 }
 
 const renderSqlWithBoldKeywords = (text: string) => {
@@ -182,9 +183,10 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
     const [prettyMode, setPrettyMode] = useState(false)
     const [expandedLines, setExpandedLines] = useState<Set<string>>(new Set())
     const [selectedLineContent, setSelectedLineContent] = useState<{
+        id: string
         pretty: string | null
         raw: string | null
-    }>({ pretty: null, raw: null })
+    }>({ id: '', pretty: null, raw: null })
     const selectedLineRef = useRef<HTMLDivElement>(null)
     const [originalLineIndices, setOriginalLineIndices] = useState<Map<string, number>>(new Map())
     const logContentRef = useRef<HTMLDivElement>(null)
@@ -251,6 +253,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
             setFilteredLines(
                 filteredFormatted.map((line) => ({
                     ...line,
+                    type: line.type as CollapsibleLine['type'],
                     isSelected: selectedLineContent?.id === `line_${line.originalIndex}`,
                 })),
             )
@@ -267,7 +270,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
                 })),
             )
         }
-    }, [content, searchQuery, debugOnly, prettyMode, selectedLineContent])
+    }, [content, searchQuery, debugOnly, prettyMode, selectedLineContent?.id])
 
     const toggleLine = (lineId: string) => {
         setExpandedLines((prev) => {
@@ -299,13 +302,12 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
             setSelectedLineContent({ id: '', raw: null, pretty: null })
             return
         }
-
         // Get raw line using the original index
-        const rawLine = content?.split('\n')[line.originalIndex]
+        const rawLine = content?.split('\n')?.[line.originalIndex ?? 0] || null
 
         const newSelectedContent = {
             id: `line_${line.originalIndex}`,
-            raw: rawLine || null,
+            raw: rawLine,
             pretty: prettyMode ? `${line.time}|${line.summary}` : null,
         }
 

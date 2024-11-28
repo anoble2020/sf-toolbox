@@ -43,12 +43,13 @@ export function LogReplay({ content, onLineSelect }: LogReplayProps) {
             .split('\n')
             .map((line, index) => {
                 const parsedLine = parseLine(line)
+                if (!parsedLine) return null
                 return {
                     ...parsedLine,
                     originalIndex: index,
                 }
             })
-            .filter(Boolean)
+            .filter((line): line is LogLine & { originalIndex: number } => line !== null)
 
         setParsedLines(lines)
     }, [content])
