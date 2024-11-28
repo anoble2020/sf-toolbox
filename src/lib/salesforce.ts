@@ -280,11 +280,12 @@ export interface TraceFlag {
     ExpirationDate: string
     DebugLevelId?: string
     TracedEntityId: string
-    TracedEntity: {
+    TracedEntity?: {
         Name: string
     }
-    DebugLevel: {
-        Name: string
+    DebugLevel?: {
+        MasterLabel?: string
+        Name?: string
     }
 }
 
@@ -299,15 +300,10 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
         const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
         const query = `
-      SELECT Id, TracedEntity.Name, DebugLevel.MasterLabel, ExpirationDate 
-      FROM TraceFlag 
-      ORDER BY ExpirationDate DESC
-    `
-
-        console.log('Querying trace flags with:', {
-            query,
-            instance_url,
-        })
+            SELECT Id, TracedEntity.Name, DebugLevel.MasterLabel, ExpirationDate, TracedEntityId, DebugLevelId
+            FROM TraceFlag 
+            ORDER BY ExpirationDate DESC
+        `
 
         const response = await fetch(
             `/api/salesforce/tooling/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
@@ -321,7 +317,6 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
         updateApiLimitsFromHeaders(response.headers)
 
         const data = await response.json()
-        console.log('Trace flags response:', data)
 
         if (!response.ok) {
             throw new Error(`Failed to fetch trace flags: ${data.error}`)
@@ -332,7 +327,20 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
             return []
         }
 
-        return data.records || []
+        // Transform the data to match our interface
+        return data.records.map((record: any): TraceFlag => ({
+            Id: record.Id,
+            ExpirationDate: record.ExpirationDate,
+            TracedEntityId: record.TracedEntityId,
+            DebugLevelId: record.DebugLevelId,
+            TracedEntity: record.TracedEntity ? {
+                Name: record.TracedEntity.Name
+            } : undefined,
+            DebugLevel: record.DebugLevel ? {
+                Name: record.DebugLevel.MasterLabel,
+                MasterLabel: record.DebugLevel.MasterLabel
+            } : undefined
+        }))
     } catch (error: unknown) {
         console.error('Error in queryTraceFlags:', error)
         throw error

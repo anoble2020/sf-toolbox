@@ -225,6 +225,14 @@ export default function TraceFlagsPage() {
         }
     }
 
+    const getTraceFlagName = (traceFlag: TraceFlag) => {
+        return traceFlag.TracedEntity?.Name || 'Unknown Entity'
+    }
+
+    const getDebugLevelName = (traceFlag: TraceFlag) => {
+        return traceFlag.DebugLevel?.Name || traceFlag.DebugLevel?.MasterLabel || 'Unknown Level'
+    }
+
     if (loading) {
         return (
           <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
@@ -256,8 +264,8 @@ export default function TraceFlagsPage() {
                 <TableBody>
                     {sortTraceFlags(traceFlags, sortDirection).map((flag) => (
                         <TableRow key={`trace-flag-${flag.Id}`}>
-                            <TableCell>{flag.TracedEntity?.Name || 'Unknown'}</TableCell>
-                            <TableCell>{flag.DebugLevel?.MasterLabel || 'Unknown'}</TableCell>
+                            <TableCell>{getTraceFlagName(flag)}</TableCell>
+                            <TableCell>{getDebugLevelName(flag)}</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                     <Circle
