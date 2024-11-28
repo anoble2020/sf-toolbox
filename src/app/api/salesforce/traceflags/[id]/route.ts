@@ -56,11 +56,11 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest) {
     try {
-        const id = await params.id
-        const { searchParams } = new URL(request.url)
-        const instance_url = searchParams.get('instance_url')
+      const segments = request.nextUrl.pathname.split('/')
+        const id = segments[segments.length - 2]
+        const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         if (!instance_url) {
             return new Response('Missing instance_url', { status: 400 })
