@@ -138,7 +138,7 @@ export function CoverageSheet({ open, onOpenChange }: CoverageSheetProps) {
                                         return (
                                             <TableRow
                                                 key={`${item.ApexClassName}-${item.ApexClassOrTriggerId}`}
-                                                className="cursor-pointer hover:bg-gray-50"
+                                                className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
                                                 onClick={() => handleClassClick(item.ApexClassOrTriggerId, item)}
                                             >
                                                 <TableCell className="font-medium">{item.ApexClassName}</TableCell>

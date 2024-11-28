@@ -146,8 +146,8 @@ export default function ExplorePage() {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin" />
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
             </div>
         )
     }

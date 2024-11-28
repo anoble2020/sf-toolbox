@@ -10,8 +10,6 @@ import { useRouter } from 'next/navigation'
 import { Save, X, Trash2 } from 'lucide-react'
 import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
 
-const STORAGE_KEY = 'saved_code_blocks'
-
 export default function ExecutePage() {
     const [code, setCode] = useState('')
     const [isExecuting, setIsExecuting] = useState(false)
@@ -19,18 +17,22 @@ export default function ExecutePage() {
     const [savedBlocks, setSavedBlocks] = useState<SavedCodeBlock[]>([])
     const [activeBlock, setActiveBlock] = useState<SavedCodeBlock | null>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+    const [orgId, setOrgId] = useState('')
     const router = useRouter()
 
     // Load saved blocks on mount
     useEffect(() => {
-        const saved = localStorage.getItem(STORAGE_KEY)
+        const userInfo = JSON.parse(localStorage.getItem('sf_user_info') || '{}')
+        setOrgId(userInfo.orgId || '')
+        
+        const saved = localStorage.getItem(`saved_code_blocks_${userInfo.orgId}`)
         if (saved) {
             setSavedBlocks(JSON.parse(saved))
         }
     }, [])
 
     const saveBlocks = (blocks: SavedCodeBlock[]) => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(blocks))
+        localStorage.setItem(`saved_code_blocks_${orgId}`, JSON.stringify(blocks))
         setSavedBlocks(blocks)
     }
 

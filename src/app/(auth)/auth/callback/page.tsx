@@ -3,6 +3,8 @@
 import { useEffect } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
+import { toast } from 'sonner'
+import { Loader2 } from 'lucide-react'
 
 console.log('CallbackPage component defined')
 
@@ -75,15 +77,43 @@ export default function CallbackPage() {
 
                 // Make sure we have a user ID before creating trace flag
                 if (data.user.user_id) {
-                    createTraceFlag(data.user.user_id).catch((error) =>
-                        console.error('Failed to create trace flag:', error),
-                    )
+                    createTraceFlag(data.user.user_id, '', 'USER_DEBUG')
+                        .then(() => {
+                            console.log('Trace flag created successfully')
+                            toast.success('Trace flag created successfully for your user')
+                })
+                        .catch((error) => {
+                            if (!error.message?.includes('trace flag already exists')) {
+                                console.error('Failed to create trace flag:', error)
+                                toast.error('Failed to create trace flag for your user')
+                            } else {
+                                console.log('Trace flag already exists')
+                                toast.info('An active trace flag already exists for your user')
+                            }
+                        })
                 } else {
                     console.warn('No user ID found in response:', data)
                 }
 
-                console.log('Stored tokens, redirecting to /logs...')
-                router.push('/logs')
+                // Store connected org
+                const connectedOrgs = JSON.parse(localStorage.getItem('connected_orgs') || '[]')
+                const newOrg: ConnectedOrg = {
+                    orgId: data.user.orgId,
+                    orgDomain: data.user.orgDomain,
+                    username: data.user.username,
+                    refreshToken: data.tokens.refresh_token,
+                    lastAccessed: new Date().toISOString()
+                }
+
+                // Update or add the org
+                const updatedOrgs = connectedOrgs.some(org => org.orgId === newOrg.orgId)
+                    ? connectedOrgs.map(org => org.orgId === newOrg.orgId ? newOrg : org)
+                    : [...connectedOrgs, newOrg]
+
+                localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
+
+                console.log('Stored tokens, redirecting to /dashboard...')
+                router.push('/dashboard')
             })
             .catch((error) => {
                 console.error('Fetch error:', error)
@@ -95,7 +125,7 @@ export default function CallbackPage() {
         <div className="min-h-screen flex items-center justify-center">
             <div className="text-center">
                 <h2 className="text-xl font-semibold mb-4">Authenticating...</h2>
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                      <Loader2 className="h-8 w-8 animate-spin" />
             </div>
         </div>
     )

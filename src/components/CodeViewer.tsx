@@ -4,10 +4,10 @@ import { StreamLanguage } from '@codemirror/language'
 import { java } from '@codemirror/legacy-modes/mode/clike'
 import { javascript } from '@codemirror/lang-javascript'
 import { xml } from '@codemirror/lang-xml'
-import { vscodeLightInit } from '@uiw/codemirror-theme-vscode'
 import { EditorState } from '@codemirror/state'
 import { highlightSpecialChars, ViewPlugin, Decoration, DecorationSet } from '@codemirror/view'
-
+import { useTheme } from 'next-themes'
+import { xcodeDark, xcodeLight } from '@uiw/codemirror-theme-xcode'
 interface CodeViewerProps {
     content: string
     language: 'apex' | 'javascript' | 'html' | 'xml'
@@ -77,7 +77,7 @@ function coverageHighlightPlugin(coveredLines: number[] = [], uncoveredLines: nu
 
 export function CodeViewer({ content, language, coveredLines = [], uncoveredLines = [] }: CodeViewerProps) {
     const [mounted, setMounted] = useState(false)
-
+    const { theme } = useTheme()
 
     console.log('coveredLines', coveredLines)
     console.log('uncoveredLines', uncoveredLines)
@@ -90,20 +90,14 @@ export function CodeViewer({ content, language, coveredLines = [], uncoveredLine
 
     const stringContent = typeof content === 'string' ? content : JSON.stringify(content, null, 2)
 
+    const isDark = theme === 'dark'
+
     return (
         <div className="h-full overflow-auto">
             <CodeMirror
                 value={stringContent}
                 height="100%"
-                theme={vscodeLightInit({
-                    settings: {
-                        background: '#ffffff',
-                        foreground: '#000000',
-                        selection: '#add6ff',
-                        selectionMatch: '#add6ff',
-                        lineHighlight: '#f0f0f0',
-                    },
-                })}
+                theme={isDark ? xcodeDark : xcodeLight}
                 editable={false}
                 extensions={[
                     getLanguageExtension(language),

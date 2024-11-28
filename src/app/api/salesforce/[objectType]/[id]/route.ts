@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: Request, { params }: { params: { objectType: string; id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: { objectType: string; id: string } }) {
     const objectType = await params.objectType
     const id = await params.id
 
