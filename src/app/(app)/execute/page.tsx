@@ -10,6 +10,13 @@ import { useRouter } from 'next/navigation'
 import { Save, X, Trash2 } from 'lucide-react'
 import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
 
+interface SavedCodeBlock {
+    id: string
+    name: string
+    code: string
+    lastModified: string
+}
+
 export default function ExecutePage() {
     const [code, setCode] = useState('')
     const [isExecuting, setIsExecuting] = useState(false)
