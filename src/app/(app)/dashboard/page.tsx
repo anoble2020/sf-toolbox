@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Code, Users, Bell, Database, Shield, Box, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
+import { Code, Users, Bell, Database, Shield, Radio, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
 import { format } from 'date-fns'
@@ -12,8 +12,11 @@ const SalesforceDashboard = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [orgData, setOrgData] = useState<any>(null)
-
-    const userTimezone = localStorage.getItem('sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const [userTimezone, setUserTimezone] = useState<string | null>(null)
+    useEffect(() => {
+        const userTimezone = localStorage.getItem('sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        setUserTimezone(userTimezone)
+    }, [])
 
     useEffect(() => {
         const fetchOrgData = async () => {
@@ -82,7 +85,7 @@ const SalesforceDashboard = () => {
                     <CardHeader>
                         <div className="flex items-center space-x-2">
                             <Code className="w-6 h-6 text-blue-500" />
-                            <CardTitle>API Requests</CardTitle>
+                            <CardTitle>API Requests (Remaining)</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -99,7 +102,7 @@ const SalesforceDashboard = () => {
                     <CardHeader>
                         <div className="flex items-center space-x-2">
                             <Users className="w-6 h-6 text-green-500" />
-                            <CardTitle>Bulk API Requests</CardTitle>
+                            <CardTitle>Bulk API Requests (Remaining)</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -116,7 +119,7 @@ const SalesforceDashboard = () => {
                     <CardHeader>
                         <div className="flex items-center space-x-2">
                             <Bell className="w-6 h-6 text-purple-500" />
-                            <CardTitle>Async Apex</CardTitle>
+                            <CardTitle>Async Apex (Remaining)</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent>
@@ -251,22 +254,30 @@ const SalesforceDashboard = () => {
                     </CardContent>
                 </Card>
 
-                <Card>
+                <Card className="col-span-2">
                     <CardHeader>
                         <div className="flex items-center space-x-2">
-                            <Box className="w-6 h-6 text-purple-500" />
-                            <CardTitle>Apex Resources</CardTitle>
+                            <Radio className="w-6 h-6 text-purple-500" />
+                            <CardTitle>Platform Events (Remaining)</CardTitle>
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
+                        <div className="grid grid-cols-1 gap-4">
                             <div className="flex justify-between">
-                                <span>Cursors Remaining</span>
-                                <span className="font-medium">42 / 50</span>
+                                <span>Hourly Published Platform Events</span>
+                                <span className="font-medium">{HourlyPublishedPlatformEvents.Remaining} / {HourlyPublishedPlatformEvents.Max}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span>Cursor Rows Remaining</span>
-                                <span className="font-medium">45,678 / 50,000</span>
+                                <span>Hourly Published Standard Volume Platform Events</span>
+                                <span className="font-medium">{HourlyPublishedStandardVolumePlatformEvents.Remaining} / {HourlyPublishedStandardVolumePlatformEvents.Max}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Daily Published Platform Events</span>
+                                <span className="font-medium">{DailyStandardVolumePlatformEvents.Remaining} / {DailyStandardVolumePlatformEvents.Max}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>Daily Delivered Platform Events</span>
+                                <span className="font-medium">{DailyDeliveredPlatformEvents.Remaining} / {DailyDeliveredPlatformEvents.Max}</span>
                             </div>
                         </div>
                     </CardContent>

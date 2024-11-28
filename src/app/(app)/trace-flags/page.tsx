@@ -244,7 +244,7 @@ export default function TraceFlagsPage() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead className="cursor-pointer hover:bg-gray-50" onClick={toggleSort}>
+                        <TableHead className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" onClick={toggleSort}>
                             Username {sortDirection === 'asc' ? '↑' : '↓'}
                         </TableHead>
                         <TableHead>Log Level</TableHead>

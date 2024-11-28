@@ -26,10 +26,12 @@ export async function GET(request: Request) {
         const limits = await limitsResponse.json()
 
         // Set up date range for the last 24 hours
-        const now = new Date()
-        const yesterday = new Date(now)
+        //const now = new Date()
+        const yesterday = new Date()
         yesterday.setDate(yesterday.getDate() - 1)
+        //const yesterday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - 1, 0, 0, 0)) // Set to the start of yesterday in UTC
         yesterday.setUTCHours(0, 0, 0, 0)
+        console.log('Yesterday:', yesterday.toISOString())
 
         // Query Event Log Files
         const queryResponse = await fetch(

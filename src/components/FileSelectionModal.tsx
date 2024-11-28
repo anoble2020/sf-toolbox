@@ -32,7 +32,7 @@ function FileTreeItem({ item, onSelect }: FileTreeItemProps) {
 
     if (!item.SubComponents) {
         return (
-            <div className="p-2 hover:bg-gray-100 rounded cursor-pointer" onClick={() => onSelect(item.Id, item.Type)}>
+            <div className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer" onClick={() => onSelect(item.Id, item.Type)}>
                 <div className="font-medium">{item.Name}</div>
                 <div className="text-sm text-gray-500">
                     Last modified: {new Date(item.LastModifiedDate).toLocaleString()}
@@ -44,7 +44,7 @@ function FileTreeItem({ item, onSelect }: FileTreeItemProps) {
     return (
         <div className="space-y-1">
             <div
-                className="p-2 hover:bg-gray-100 rounded cursor-pointer flex items-center"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer flex items-center"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 {isExpanded ? <ChevronDown className="w-4 h-4 mr-2" /> : <ChevronRight className="w-4 h-4 mr-2" />}
@@ -61,7 +61,7 @@ function FileTreeItem({ item, onSelect }: FileTreeItemProps) {
                     {item.SubComponents.map((subItem) => (
                         <div
                             key={subItem.Id}
-                            className="p-2 hover:bg-gray-100 rounded cursor-pointer"
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer"
                             onClick={() => onSelect(subItem.Id, subItem.Type)}
                         >
                             <div className="font-medium">{subItem.Name}</div>

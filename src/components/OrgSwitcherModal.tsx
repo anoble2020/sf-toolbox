@@ -66,7 +66,7 @@ export function OrgSwitcherModal({ isOpen, onClose, currentOrgId }: OrgSwitcherM
                     {orgs.map((org) => (
                         <div
                             key={org.orgId}
-                            className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50"
+                            className="flex items-center justify-between p-3 rounded-lg border hover:bg-gray-50 dark:hover:bg-gray-800"
                         >
                             <div>
                                 <div className="font-medium">{org.username}</div>

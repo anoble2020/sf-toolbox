@@ -85,7 +85,7 @@ export function TestResultsTable({ runs, testClasses }: TestResultsTableProps) {
                             {isExpanded && run.status === 'completed' && !run.error && (
                                 <TableRow>
                                     <TableCell colSpan={5}>
-                                        <div className="p-4 bg-gray-50">
+                                        <div className="p-4">
                                             <Table>
                                                 <TableHeader>
                                                     <TableRow>

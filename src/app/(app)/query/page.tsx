@@ -262,7 +262,7 @@ export default function QueryPage() {
                                                 {getColumns().map((column) => (
                                                     <TableHead
                                                         key={column}
-                                                        className="cursor-pointer hover:bg-gray-50 min-w-[80px] bg-white w-[200px]"
+                                                        className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 min-w-[80px] bg-background w-[200px]"
                                                         onClick={() => handleSort(column)}
                                                     >
                                                         <div className="flex items-center gap-2">
@@ -275,7 +275,7 @@ export default function QueryPage() {
                                                         </div>
                                                     </TableHead>
                                                 ))}
-                                                <TableHead className="min-w-[80px] bg-white w-[80px]"></TableHead>
+                                                <TableHead className="min-w-[80px] bg-background w-[80px]"></TableHead>
                                             </TableRow>
                                         </TableHeader>
                                     </Table>
