@@ -5,7 +5,7 @@ import Image from 'next/image'
 
 export default function AuthPage() {
     const SF_CLIENT_ID = process.env.NEXT_PUBLIC_SF_CLIENT_ID
-    const SF_REDIRECT_URI = 'http://localhost:3000/auth/callback'
+    const SF_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
 
     const handleLogin = () => {
         if (!SF_CLIENT_ID) {

@@ -21,7 +21,7 @@ export async function POST(request: Request) {
                 grant_type: 'authorization_code',
                 client_id: process.env.NEXT_PUBLIC_SF_CLIENT_ID!,
                 client_secret: process.env.SF_CLIENT_SECRET!,
-                redirect_uri: 'http://localhost:3000/auth/callback',
+                redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
                 code: code,
             }),
         })
