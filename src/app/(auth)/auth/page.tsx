@@ -5,6 +5,7 @@ import Image from 'next/image'
 
 export default function AuthPage() {
     const SF_CLIENT_ID = process.env.NEXT_PUBLIC_SF_CLIENT_ID
+    console.log('sf redirect uri', process.env.NEXT_PUBLIC_APP_URL)
     const SF_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
 
     const handleLogin = () => {
@@ -40,12 +41,12 @@ export default function AuthPage() {
                     zIndex: 0,
                 }}
             />
-            <div className="relative w-full max-w-md space-y-8 z-10 p-6 bg-white rounded-lg shadow-lg">
+            <div className="relative w-full max-w-md space-y-8 z-10 p-6 bg-background rounded-lg shadow-lg">
                 <div className="flex flex-col items-center">
                     <Image src="/icon_128_purp.png" alt="SF Toolkit Logo" width={128} height={128} priority />
                     <h1 className="text-2xl font-semibold mb-8">sf toolbox</h1>
                     <div className="flex gap-4">
-                        <Button size="lg" onClick={handleLogin} className="font-medium bg-gray-600">
+                        <Button size="lg" onClick={handleLogin} className="font-medium">
                             <Image
                                 src="/sf_cloud_logo.png"
                                 alt="SF Logo"
@@ -59,7 +60,7 @@ export default function AuthPage() {
                             />
                             Sandbox
                         </Button>
-                        <Button size="lg" onClick={handleLogin} className="font-medium bg-gray-600">
+                        <Button size="lg" onClick={handleLogin} className="font-medium">
                             <Image
                                 src="/sf_cloud_logo.png"
                                 alt="SF Logo"
