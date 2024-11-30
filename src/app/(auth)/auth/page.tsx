@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
 export default function AuthPage() {
-    const SF_CLIENT_ID = process.env.NEXT_PUBLIC_SF_CLIENT_ID
+    const SF_CLIENT_ID = process.env.SF_CLIENT_ID
     console.log('sf redirect uri', process.env.NEXT_PUBLIC_APP_URL)
     const SF_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
 
