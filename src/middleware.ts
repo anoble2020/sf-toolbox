@@ -6,16 +6,12 @@ export function middleware(request: NextRequest) {
     const hasRefreshToken = request.cookies.get('sf_refresh_token')
     const bypassAuth = process.env.BYPASS_AUTH === 'true'
 
-    if (request.nextUrl.pathname === '/logs' && (hasRefreshToken || bypassAuth)) {
-        return NextResponse.next()
-    }
-
     if (!isAuthPath && !hasRefreshToken && !bypassAuth) {
         return NextResponse.redirect(new URL('/auth', request.url))
     }
 
     if (request.nextUrl.pathname === '/auth' && (hasRefreshToken || bypassAuth)) {
-        return NextResponse.redirect(new URL('/logs', request.url))
+        return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 
     return NextResponse.next()

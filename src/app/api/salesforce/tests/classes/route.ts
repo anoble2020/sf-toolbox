@@ -14,103 +14,42 @@ export async function GET(request: Request) {
     }
 
     try {
-        // First try to get all active classes
-        const compositeRequest = {
-            compositeRequest: [
-                {
-                    method: 'GET',
-                    url:
-                        '/services/data/v59.0/tooling/query/?q=' +
-                        encodeURIComponent(`
+        // Get all active classes with a regular query
+        const queryUrl = `${instance_url}/services/data/v59.0/tooling/query/?q=${encodeURIComponent(`
             SELECT Id, Name, Body, SymbolTable 
             FROM ApexClass 
             WHERE NamespacePrefix = null 
             AND Status = 'Active'
             ORDER BY Name
-          `),
-                    referenceId: 'testClasses',
-                },
-            ],
-        }
+        `)}`;
 
-        console.log('Making request to Salesforce:', {
-            url: `${instance_url}/services/data/v59.0/tooling/composite`,
-            compositeRequest,
-        })
+        console.log('Making request to Salesforce:', { url: queryUrl });
 
-        const response = await fetch(`${instance_url}/services/data/v59.0/tooling/composite`, {
-            method: 'POST',
+        const response = await fetch(queryUrl, {
             headers: {
                 Authorization: authorization,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(compositeRequest),
-        })
+        });
 
-        const data = await response.json()
+        const data = await response.json();
 
         if (!response.ok) {
-            console.error('Error response from Salesforce:', data)
+            console.error('Error response from Salesforce:', data);
             return NextResponse.json(
                 {
                     error: 'Salesforce API error',
                     details: data,
                 },
                 { status: response.status },
-            )
-        }
-
-        // Check for errors in composite response
-        if (data.compositeResponse[0].httpStatusCode >= 400) {
-            console.error('Error in composite response:', data.compositeResponse[0])
-            return NextResponse.json(
-                {
-                    error: 'Salesforce query error',
-                    details: data.compositeResponse[0].body,
-                },
-                { status: data.compositeResponse[0].httpStatusCode },
-            )
+            );
         }
 
         // Get all classes first
-        const classes = data.compositeResponse[0].body.records
+        const classes = data.records;
         // Filter test classes by examining the Body content
-        const testClasses = classes.filter((cls: { Body: string }) => cls.Body.includes('@isTest') || cls.Body.includes('@IsTest'))
-
-        // Now get the methods for just the test classes
-        const testClassIds = testClasses.map((cls: { Id: string }) => `'${cls.Id}'`).join(',')
-
-        if (testClassIds.length === 0) {
-            return NextResponse.json([])
-        }
-
-        const methodsResponse = await fetch(
-            `${instance_url}/services/data/v59.0/tooling/query/?q=` +
-                encodeURIComponent(`
-        SELECT Id, Name, SymbolTable 
-        FROM ApexClass 
-        WHERE Id IN (${testClassIds})
-      `),
-            {
-                headers: {
-                    Authorization: authorization,
-                },
-            },
-        )
-
-        const methodsData = await methodsResponse.json()
-
-        if (!methodsResponse.ok) {
-            console.error('Error fetching methods:', methodsData)
-            return NextResponse.json(
-                {
-                    error: 'Failed to fetch test methods',
-                    details: methodsData,
-                },
-                { status: methodsResponse.status },
-            )
-        }
-
+        const testClasses = classes.filter((cls: { Body: string }) => cls.Body.includes('@isTest') || cls.Body.includes('@IsTest'));
+        
         // Process and combine the results using SymbolTable to get test methods
         const classesWithMethods = testClasses.map((cls: { Id: string, Name: string, SymbolTable: { methods: { annotations: { name: string }[] }[] } }) => {
             const methods = cls.SymbolTable?.methods || []
