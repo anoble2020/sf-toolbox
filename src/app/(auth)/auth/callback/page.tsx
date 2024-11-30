@@ -15,6 +15,7 @@ function CallbackContent() {
     const error_description = searchParams.get('error_description')
 
     useEffect(() => {
+
         if (error) {
             console.error('OAuth Error:', error)
             console.error('Error Description:', error_description)

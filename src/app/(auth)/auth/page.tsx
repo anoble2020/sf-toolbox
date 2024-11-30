@@ -4,24 +4,21 @@ import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 
 export default function AuthPage() {
-    const SF_CLIENT_ID = process.env.SF_CLIENT_ID
-    console.log('sf redirect uri', process.env.NEXT_PUBLIC_APP_URL)
-    const SF_REDIRECT_URI = `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`
 
-    const handleLogin = () => {
-        if (!SF_CLIENT_ID) {
-            console.error('Missing SF_CLIENT_ID')
-            return
+    const handleLogin = async () => {
+        try {
+            const response = await fetch('/api/auth/authorize')
+            const { authUrl } = await response.json()
+            
+            if (!authUrl) {
+                console.error('Failed to get authorization URL')
+                return
+            }
+
+            window.location.href = authUrl
+        } catch (error) {
+            console.error('Failed to initiate login:', error)
         }
-
-        const authUrl =
-            `https://login.salesforce.com/services/oauth2/authorize?` +
-            `client_id=${SF_CLIENT_ID}&` +
-            `redirect_uri=${encodeURIComponent(SF_REDIRECT_URI)}&` +
-            `response_type=code`
-
-        console.log('Redirecting to:', authUrl)
-        window.location.href = authUrl
     }
 
     return (
