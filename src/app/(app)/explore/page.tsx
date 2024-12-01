@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CodeViewer } from '@/components/CodeViewer'
 import { FileSelectionModal } from '@/components/FileSelectionModal'
@@ -9,6 +9,14 @@ import { X, Loader2 } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
 import { BundleViewer } from '@/components/BundleViewer'
 import { CACHE_DURATIONS } from '@/lib/constants'
+
+interface FileItem {
+    Id: string
+    Name: string
+    Type: string
+    LastModifiedDate: string
+}
+
 interface FileMetadata {
     Id: string
     Name: string
@@ -57,7 +65,7 @@ const fetchFiles = async () => {
     }
 }
 
-export default function ExplorePage() {
+function ExploreContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [isFileModalOpen, setIsFileModalOpen] = useState(false)
@@ -65,12 +73,12 @@ export default function ExplorePage() {
     const [files, setFiles] = useState<FileData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [isModalOpen, setIsModalOpen] = useState(false)
 
     const fileId = searchParams.get('id')
     const fileType = searchParams.get('type')
     const coverageParam = searchParams.get('coverage')
 
-    // Combine the file fetching and coverage parsing into a single effect
     useEffect(() => {
         if (!fileId || !fileType) {
             setFile(null)
@@ -84,12 +92,11 @@ export default function ExplorePage() {
         if (coverageParam) {
             try {
                 coverage = JSON.parse(decodeURIComponent(coverageParam))
-            } catch (e) {
+            } catch (e: unknown) {
                 console.error('Failed to parse coverage data:', e)
             }
         }
 
-        // Only fetch if we have valid params
         const fetchData = async () => {
             try {
                 setLoading(true)
@@ -117,7 +124,7 @@ export default function ExplorePage() {
                     Coverage: coverage,
                     files: data.files,
                 })
-            } catch (error) {
+            } catch (error: any) {
                 console.error('Error:', error)
                 setError(error instanceof Error ? error.message : 'Failed to fetch file')
             } finally {
@@ -129,14 +136,11 @@ export default function ExplorePage() {
     }, [fileId, fileType, coverageParam])
 
     const handleClose = () => {
-        // Clear the file state
         setFile(null)
         setError(null)
-        // Replace the current URL with the base path
         router.replace('/explore')
     }
 
-    // Add logging for render phase
     console.log('ExplorePage render:', {
         file: file?.Id,
         coverage: file?.Coverage,
@@ -164,11 +168,11 @@ export default function ExplorePage() {
                         Select a file to view
                     </Button>
                     <FileSelectionModal
-                        open={isFileModalOpen}
-                        onOpenChange={setIsFileModalOpen}
+                        open={isModalOpen}
+                        onOpenChange={setIsModalOpen}
                         onFileSelect={(id, type) => {
                             router.push(`/explore?id=${id}&type=${type}`)
-                            setIsFileModalOpen(false)
+                            setIsModalOpen(false)
                         }}
                     />
                 </div>
@@ -197,8 +201,11 @@ export default function ExplorePage() {
                 <div className="flex items-center gap-4">
                     <h1 className="text-xl font-semibold">{file?.Name}</h1>
                     <FileSelectionModal
+                        open={isModalOpen}
+                        onOpenChange={setIsModalOpen}
                         onFileSelect={(id, type) => {
                             router.push(`/explore?id=${id}&type=${type}`)
+                            setIsModalOpen(false)
                         }}
                     />
                 </div>
@@ -227,5 +234,17 @@ export default function ExplorePage() {
                 )}
             </div>
         </div>
+    )
+}
+
+export default function ExplorePage() {
+    return (
+        <Suspense fallback={
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+            </div>
+        }>
+            <ExploreContent />
+        </Suspense>
     )
 }

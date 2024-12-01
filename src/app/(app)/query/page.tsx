@@ -36,30 +36,28 @@ export default function QueryPage() {
     const store = useApiLimits()
 
     const addIdToQuery = (query: string): string => {
-        // Remove any leading/trailing whitespace
         const trimmedQuery = query.trim()
-
-        // Extract the SELECT clause
-        const selectMatch = trimmedQuery.match(/SELECT\s+(.*?)\s+FROM/i)
-        if (!selectMatch) return query // Return original if no SELECT found
-
-        const fields = selectMatch[1].split(',').map((field) => field.trim())
-
-        // Check if Id is already included
-        // Look for exact "Id" field, not fields containing "Id"
-        const hasId = fields.some((field) => {
-            // Handle both "Id" and "Account.Id" cases
-            const parts = field.split('.')
-            return parts[parts.length - 1].toLowerCase() === 'id'
-        })
-
+        
+        // Check if query starts with SELECT (case-insensitive)
+        const selectMatch = trimmedQuery.match(/SELECT\s+([\w\s,]*)\s+FROM/i)
+        
+        if (!selectMatch || selectMatch.index === undefined) {
+            return query // Return original query if no valid SELECT found
+        }
+        
+        // Check if Id field is already present
+        const hasId = selectMatch[1].split(',').some(field => 
+            field.trim().toLowerCase() === 'id' || 
+            field.trim().toLowerCase().endsWith('.id')
+        )
+        
         if (!hasId) {
             // Insert Id as the first field
             const beforeFrom = trimmedQuery.slice(0, selectMatch.index + 7) // "SELECT "
             const afterFields = trimmedQuery.slice(selectMatch.index + 7 + selectMatch[1].length)
             return `${beforeFrom}Id, ${selectMatch[1]}${afterFields}`
         }
-
+        
         return query
     }
 
@@ -188,7 +186,7 @@ export default function QueryPage() {
         try {
             await navigator.clipboard.writeText(text)
             toast('Record Id copied to clipboard')
-        } catch (err) {
+        } catch (err: unknown) {
             console.error('Failed to copy:', err)
             toast('Failed to copy Id to clipboard')
         }

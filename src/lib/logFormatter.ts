@@ -13,7 +13,7 @@ interface FormattedLine {
     time: string
     summary: string
     details?: string
-    type: 'SOQL' | 'JSON' | 'STANDARD' | 'LIMITS' | 'CODE_UNIT' | 'FLOW' | 'DML' | 'VALIDATION'
+    type: string
     isCollapsible?: boolean
     suffix?: string
     nestLevel?: number
@@ -62,7 +62,7 @@ function tryFormatJson(str: string): {
     }
 }
 
-export function formatLogLine(line: string, originalIndex: number, allLines: string[]): FormattedLine {
+export function formatLogLine(line: string, originalIndex: number, allLines: string[]): FormattedLine | null {
     const baseId = `line_${originalIndex}`
 
     const timeMatch = line.match(/(\d{2}:\d{2}:\d{2})\.(\d+)\s*\(\d+\)\|/)
@@ -378,6 +378,8 @@ export function formatLogs(lines: string[]): FormattedLine[] {
             }
 
             const formattedLine = formatLogLine(content, originalIndex, lines)
+            if (!formattedLine) continue
+
             const sqlQuery = restOfQuery.replace(/\|Aggregations:\d+\|/, '').trim()
 
             formattedLines.push({

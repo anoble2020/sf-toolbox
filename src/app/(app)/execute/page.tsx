@@ -9,6 +9,7 @@ import { refreshAccessToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { Save, X, Trash2 } from 'lucide-react'
 import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
+import { SavedCodeBlock } from '@/lib/types'
 
 export default function ExecutePage() {
     const [code, setCode] = useState('')
@@ -36,12 +37,13 @@ export default function ExecutePage() {
         setSavedBlocks(blocks)
     }
 
-    const handleSaveNew = (name: string) => {
+    const handleSave = (name: string) => {
         const newBlock: SavedCodeBlock = {
             id: crypto.randomUUID(),
             name,
             code,
             lastModified: new Date().toISOString(),
+            orgId
         }
 
         const updated = [...savedBlocks, newBlock]
@@ -130,7 +132,6 @@ export default function ExecutePage() {
                         },
                     })
                 } else {
-                    // For non-success statuses, show as error with the status message
                     toast.error(result.logStatus || 'Execution failed', {
                         action: {
                             label: 'View Log',
@@ -141,9 +142,9 @@ export default function ExecutePage() {
             } else {
                 toast.error(result.exceptionMessage || result.compileProblem || 'Failed to execute code')
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Execute error:', error)
-            toast.error(error.message)
+            toast.error(error instanceof Error ? error.message : 'Failed to execute code')
         } finally {
             setIsExecuting(false)
         }
@@ -204,7 +205,7 @@ export default function ExecutePage() {
             <SaveCodeBlockModal
                 isOpen={isSaveModalOpen}
                 onClose={() => setSaveModalOpen(false)}
-                onSave={handleSaveNew}
+                onSave={handleSave}
             />
 
             <SavedBlocksDrawer

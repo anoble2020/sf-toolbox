@@ -10,7 +10,7 @@ import { useTheme } from 'next-themes'
 import { xcodeDark, xcodeLight } from '@uiw/codemirror-theme-xcode'
 interface CodeViewerProps {
     content: string
-    language: 'apex' | 'javascript' | 'html' | 'xml'
+    language: string
     coveredLines?: number[]
     uncoveredLines?: number[]
 }

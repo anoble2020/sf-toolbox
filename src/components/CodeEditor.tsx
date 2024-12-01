@@ -39,10 +39,7 @@ export function CodeEditor({ value, onChange, language = 'apex' }: CodeEditorPro
             extensions={[
                 StreamLanguage.define(java),
                 EditorState.tabSize.of(4),
-                EditorState.phrases.of({
-                    'active-line-gutter': false,
-                    'active-line-highlight': false,
-                }),
+                EditorState.changeFilter.of(() => true),
             ]}
             className="border rounded-md overflow-y-auto"
             placeholder="Enter Anonymous Apex here..."

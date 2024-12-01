@@ -1,26 +1,24 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { ConnectedOrg } from '@/lib/types'
 
-console.log('CallbackPage component defined')
-
-export default function CallbackPage() {
-    console.log('CallbackPage render')
-    const searchParams = useSearchParams()
+function CallbackContent() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const code = searchParams.get('code')
+    const error = searchParams.get('error')
+    const error_description = searchParams.get('error_description')
 
     useEffect(() => {
-        console.log('CallbackPage mounted')
-        const code = searchParams.get('code')
-        const error = searchParams.get('error')
 
         if (error) {
             console.error('OAuth Error:', error)
-            console.error('Error Description:', searchParams.get('error_description'))
+            console.error('Error Description:', error_description)
             router.push('/auth')
             return
         }
@@ -82,7 +80,7 @@ export default function CallbackPage() {
                             console.log('Trace flag created successfully')
                             toast.success('Trace flag created successfully for your user')
                 })
-                        .catch((error) => {
+                        .catch((error: any) => {
                             if (!error.message?.includes('trace flag already exists')) {
                                 console.error('Failed to create trace flag:', error)
                                 toast.error('Failed to create trace flag for your user')
@@ -104,10 +102,9 @@ export default function CallbackPage() {
                     refreshToken: data.tokens.refresh_token,
                     lastAccessed: new Date().toISOString()
                 }
-
                 // Update or add the org
-                const updatedOrgs = connectedOrgs.some(org => org.orgId === newOrg.orgId)
-                    ? connectedOrgs.map(org => org.orgId === newOrg.orgId ? newOrg : org)
+                const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
+                    ? connectedOrgs.map((org: ConnectedOrg) => org.orgId === newOrg.orgId ? newOrg : org)
                     : [...connectedOrgs, newOrg]
 
                 localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
@@ -115,18 +112,27 @@ export default function CallbackPage() {
                 console.log('Stored tokens, redirecting to /dashboard...')
                 router.push('/dashboard')
             })
-            .catch((error) => {
+            .catch((error: any) => {
                 console.error('Fetch error:', error)
                 router.push('/auth')
             })
-    }, [searchParams, router])
+    }, [code, error, error_description, router])
 
     return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="text-center">
-                <h2 className="text-xl font-semibold mb-4">Authenticating...</h2>
-                      <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
+        <div className="flex items-center justify-center min-h-screen">
+            <Loader2 className="w-8 h-8 animate-spin" />
         </div>
+    )
+}
+
+export default function CallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-8 h-8 animate-spin" />
+            </div>
+        }>
+            <CallbackContent />
+        </Suspense>
     )
 }

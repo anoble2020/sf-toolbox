@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
                         type: getFileType(record.FilePath),
                         filePath: record.FilePath
                     }))
-                    .sort((a, b) => {
+                    .sort((a: { filePath: string }, b: { filePath: string }) => {
                         const order = ['js', 'html', 'css', 'xml'];
                         const extA = a.filePath.split('.').pop() || '';
                         const extB = b.filePath.split('.').pop() || '';
@@ -116,7 +116,7 @@ export async function GET(request: NextRequest) {
                         type: getFileType(record.FilePath || record.DefType),
                         defType: record.DefType
                     }))
-                    .sort((a, b) => {
+                    .sort((a: { defType: string }, b: { defType: string }) => {
                         const order = ['COMPONENT', 'CONTROLLER', 'HELPER', 'STYLE', 'DOCUMENTATION', 'RENDERER', 'DESIGN', 'SVG'];
                         const typeA = a.defType || '';
                         const typeB = b.defType || '';

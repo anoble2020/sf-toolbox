@@ -30,66 +30,68 @@ export default function TraceFlagsPage() {
     const [debugLevels, setDebugLevels] = useState<DebugLevel[]>([])
     const [loading, setLoading] = useState(true)
     const [refreshing, setRefreshing] = useState(false)
-    const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
+    const [sortField, setSortField] = useState<keyof TraceFlag>('ExpirationDate')
+    const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
 
     useEffect(() => {
         let mounted = true
-
-        const loadData = async () => {
-            try {
-                const cachedData = localStorage.getItem('cached_trace_flags')
-                if (cachedData) {
-                    const parsed = JSON.parse(cachedData)
-                    if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
-                        if (mounted) {
-                            setTraceFlags(parsed.flags)
-                            setUsers(parsed.users)
-                            setDebugLevels(parsed.levels)
-                            setLoading(false)
-                        }
-                        return
-                    }
-                }
-
-                const [flags, usersList, levels] = await Promise.all([
-                    queryTraceFlags(),
-                    queryUsers(),
-                    queryDebugLevels(),
-                ])
-
-                if (mounted) {
-                    setTraceFlags(flags)
-                    setUsers(usersList)
-                    setDebugLevels(levels)
-                }
-
-                const cacheData = {
-                    flags,
-                    users: usersList,
-                    levels,
-                    lastFetched: Date.now(),
-                }
-                localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
-            } catch (error) {
-                if (mounted) {
-                    console.error('Failed to load data:', error)
-                    setError(error instanceof Error ? error.message : 'Failed to load data')
-                }
-            } finally {
-                if (mounted) {
-                    setLoading(false)
-                }
-            }
-        }
-
-        loadData()
-
+        loadData(mounted)
         return () => {
             mounted = false
         }
     }, [])
+
+    const loadData = async (mounted?: boolean) => {
+      try {
+          const cachedData = localStorage.getItem('cached_trace_flags')
+          if (cachedData) {
+              const parsed = JSON.parse(cachedData)
+              const debugLevels = parsed.levels as DebugLevel[]
+              const users = parsed.users as SalesforceUser[]
+              const flags = parsed.flags as TraceFlag[]
+              if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
+                  if (mounted) {
+                      setTraceFlags(flags)
+                      setUsers(users)
+                      setDebugLevels(debugLevels)
+                      setLoading(false)
+                  }
+                  return
+              }
+          }
+
+          const [flags, usersList, levels] = await Promise.all([
+              queryTraceFlags(),
+              queryUsers(),
+              queryDebugLevels(),
+          ])
+
+          if (mounted) {
+              setTraceFlags(flags)
+              setUsers(usersList)
+              setDebugLevels(levels)
+          }
+
+          const cacheData = {
+              flags,
+              users: usersList,
+              levels,
+              lastFetched: Date.now(),
+          }
+          localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
+      } catch (error: any) {
+          if (mounted) {
+              console.error('Failed to load data:', error)
+              setError(error instanceof Error ? error.message : 'Failed to load data')
+          }
+      } finally {
+          if (mounted) {
+              setLoading(false)
+          }
+      }
+  }
 
     const handleRenew = async (id: string) => {
         try {
@@ -122,7 +124,7 @@ export default function TraceFlagsPage() {
                 // If no cache exists, fetch fresh data
                 await loadData()
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to renew trace flag:', error)
         } finally {
             setRefreshing(false)
@@ -153,7 +155,7 @@ export default function TraceFlagsPage() {
             } else {
                 await loadData()
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to delete trace flag:', error)
             setError(error instanceof Error ? error.message : 'Failed to delete trace flag')
         } finally {
@@ -163,8 +165,8 @@ export default function TraceFlagsPage() {
 
     const sortTraceFlags = (flags: TraceFlag[], direction: SortDirection) => {
         return [...flags].sort((a, b) => {
-            const nameA = a.TracedEntity.Name.toLowerCase()
-            const nameB = b.TracedEntity.Name.toLowerCase()
+            const nameA = a.TracedEntity?.Name?.toLowerCase() || ''
+            const nameB = b.TracedEntity?.Name?.toLowerCase() || ''
             return direction === 'asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA)
         })
     }
@@ -194,9 +196,11 @@ export default function TraceFlagsPage() {
                 const debugLevel = parsed.levels.find((d: DebugLevel) => d.Id === debugLevelId)
 
                 // Structure the new flag to match the expected format
-                const structuredFlag = {
-                    ...newFlag,
-                    Id: userId,
+                const structuredFlag: TraceFlag = {
+                    ...((newFlag as unknown) as Record<string, any>),
+                    Id: (newFlag as any).Id,
+                    TracedEntityId: userId,
+                    ExpirationDate: (newFlag as any).ExpirationDate,
                     TracedEntity: {
                         Name: user?.Name || 'Unknown User',
                     },
@@ -218,10 +222,18 @@ export default function TraceFlagsPage() {
             } else {
                 await loadData()
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Failed to create trace flag:', error)
             toast.error(error instanceof Error ? error.message : 'Failed to create trace flag')
         }
+    }
+
+    const getTraceFlagName = (traceFlag: TraceFlag) => {
+        return traceFlag.TracedEntity?.Name || 'Unknown Entity'
+    }
+
+    const getDebugLevelName = (traceFlag: TraceFlag) => {
+        return traceFlag.DebugLevel?.Name || traceFlag.DebugLevel?.MasterLabel || 'Unknown Level'
     }
 
     if (loading) {
@@ -255,8 +267,8 @@ export default function TraceFlagsPage() {
                 <TableBody>
                     {sortTraceFlags(traceFlags, sortDirection).map((flag) => (
                         <TableRow key={`trace-flag-${flag.Id}`}>
-                            <TableCell>{flag.TracedEntity?.Name || 'Unknown'}</TableCell>
-                            <TableCell>{flag.DebugLevel?.MasterLabel || 'Unknown'}</TableCell>
+                            <TableCell>{getTraceFlagName(flag)}</TableCell>
+                            <TableCell>{getDebugLevelName(flag)}</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
                                     <Circle

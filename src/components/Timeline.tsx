@@ -48,7 +48,6 @@ export function Timeline({ logContent, onClose, onEventClick }: TimelineProps) {
                     barHeight: 20,
                     barGap: 4,
                     topPadding: 50,
-                    sidePadding: 75,
                     numberSectionStyles: 4,
                     fontSize: 12,
                     useWidth: 1000,

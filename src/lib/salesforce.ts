@@ -1,5 +1,5 @@
-import { refreshAccessToken } from './auth'
-import { apiLimitsActions } from './store'
+import { refreshAccessToken } from '../lib/auth'
+import { apiLimitsActions } from '../lib/store'
 
 interface SalesforceResponse<T> {
     records: T[]
@@ -21,18 +21,9 @@ interface ApexLog {
     DurationMilliseconds: number
 }
 
-interface DebugLevel {
+export interface DebugLevel {
     Id: string
-    DeveloperName: string
-}
-
-interface TraceFlag {
-    Id: string
-    LogType: string
-    StartDate: string
-    ExpirationDate: string
-    DebugLevelId: string
-    TracedEntityId: string
+    MasterLabel: string
 }
 
 export function updateApiLimitsFromHeaders(headers: Headers) {
@@ -120,7 +111,7 @@ export const queryLogs = async (currentUserOnly = false): Promise<ApexLog[]> => 
                 }
             })
             .filter(Boolean)
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in queryLogs:', error)
         throw error
     }
@@ -267,7 +258,7 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
 
         const data = await response.json()
         console.log('Trace flag created successfully:', data)
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error creating trace flag:', error)
         throw error
     }
@@ -280,11 +271,13 @@ export interface TraceFlag {
     ExpirationDate: string
     DebugLevelId?: string
     TracedEntityId: string
-    TracedEntity: {
+    TracedEntity?: {
         Name: string
     }
-    DebugLevel: {
-        Name: string
+    DebugLevel?: {
+        Id?: string
+        MasterLabel?: string
+        Name?: string
     }
 }
 
@@ -299,15 +292,10 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
         const { access_token, instance_url } = await refreshAccessToken(refreshToken)
 
         const query = `
-      SELECT Id, TracedEntity.Name, DebugLevel.MasterLabel, ExpirationDate 
-      FROM TraceFlag 
-      ORDER BY ExpirationDate DESC
-    `
-
-        console.log('Querying trace flags with:', {
-            query,
-            instance_url,
-        })
+            SELECT Id, TracedEntity.Name, DebugLevel.MasterLabel, ExpirationDate, TracedEntityId, DebugLevelId
+            FROM TraceFlag 
+            ORDER BY ExpirationDate DESC
+        `
 
         const response = await fetch(
             `/api/salesforce/tooling/query?q=${encodeURIComponent(query)}&instance_url=${encodeURIComponent(instance_url)}`,
@@ -321,7 +309,6 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
         updateApiLimitsFromHeaders(response.headers)
 
         const data = await response.json()
-        console.log('Trace flags response:', data)
 
         if (!response.ok) {
             throw new Error(`Failed to fetch trace flags: ${data.error}`)
@@ -332,8 +319,21 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
             return []
         }
 
-        return data.records || []
-    } catch (error) {
+        // Transform the data to match our interface
+        return data.records.map((record: any): TraceFlag => ({
+            Id: record.Id,
+            ExpirationDate: record.ExpirationDate,
+            TracedEntityId: record.TracedEntityId,
+            DebugLevelId: record.DebugLevelId,
+            TracedEntity: record.TracedEntity ? {
+                Name: record.TracedEntity.Name
+            } : undefined,
+            DebugLevel: record.DebugLevel ? {
+                Name: record.DebugLevel.MasterLabel,
+                MasterLabel: record.DebugLevel.MasterLabel
+            } : undefined
+        }))
+    } catch (error: any) {
         console.error('Error in queryTraceFlags:', error)
         throw error
     }
@@ -378,7 +378,7 @@ export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
             const error = await response.json()
             throw new Error(`Failed to renew trace flag: ${error.message || 'Unknown error'}`)
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in renewTraceFlag:', error)
         throw error
     }
@@ -410,7 +410,7 @@ export const deleteTraceFlag = async (traceFlagId: string): Promise<void> => {
             const error = await response.json()
             throw new Error(`Failed to delete trace flag: ${error.message || 'Unknown error'}`)
         }
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error in deleteTraceFlag:', error)
         throw error
     }
@@ -457,7 +457,7 @@ export const queryUsers = async (): Promise<SalesforceUser[]> => {
 
         const data = await response.json()
         return data.records || []
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error querying users:', error)
         throw error
     }
@@ -492,7 +492,7 @@ export const queryDebugLevels = async (): Promise<DebugLevel[]> => {
 
         const data = await response.json()
         return data.records || []
-    } catch (error) {
+    } catch (error: any) {
         console.error('Error querying debug levels:', error)
         throw error
     }

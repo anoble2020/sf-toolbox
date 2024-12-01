@@ -57,7 +57,7 @@ export function CoverageSheet({ open, onOpenChange }: CoverageSheetProps) {
 
             const data = await response.json()
             setCoverage(data)
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error:', error)
             setError(error instanceof Error ? error.message : 'Failed to fetch coverage')
         } finally {
