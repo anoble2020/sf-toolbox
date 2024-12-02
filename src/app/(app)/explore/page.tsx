@@ -68,9 +68,7 @@ const fetchFiles = async () => {
 function ExploreContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const [isFileModalOpen, setIsFileModalOpen] = useState(false)
     const [file, setFile] = useState<FileMetadata | null>(null)
-    const [files, setFiles] = useState<FileData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -164,7 +162,7 @@ function ExploreContent() {
         return (
             <div className="h-full flex flex-col p-4">
                 <div className="h-full flex items-center justify-center">
-                    <Button variant="outline" onClick={() => setIsFileModalOpen(true)} className="text-md">
+                    <Button variant="outline" onClick={() => setIsModalOpen(true)} className="text-md">
                         Select a file to view
                     </Button>
                     <FileSelectionModal
