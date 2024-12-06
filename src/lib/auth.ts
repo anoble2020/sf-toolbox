@@ -16,6 +16,8 @@ export const getAccessToken = async (): Promise<TokenResponse> => {
     const refreshToken = localStorage.getItem('sf_refresh_token')
 
     // Only use session token if it matches the current org
+    // Removing for now sicne we can't introspect SF-issued tokens (client key
+    // and secret will not match target org)
     if (sessionToken && sessionDomain && currentOrgDomain) {
         if (sessionDomain.includes(currentOrgDomain)) {
             const info = await introspectToken(sessionToken)
@@ -41,6 +43,7 @@ export const refreshAccessToken = async (refreshToken: string): Promise<TokenRes
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            'userInfo': localStorage.getItem('sf_user_info') || '',
         },
         body: JSON.stringify({ refresh_token: refreshToken }),
     })

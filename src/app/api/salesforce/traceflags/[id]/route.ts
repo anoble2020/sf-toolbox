@@ -1,9 +1,11 @@
 import { NextRequest } from 'next/server'
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
     try {
-        const segments = request.nextUrl.pathname.split('/')
-        const id = segments[segments.length - 2]
+        const id = params.id
         const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         console.log('Renewing trace flag:', { id, instance_url })
@@ -21,7 +23,7 @@ export async function PATCH(request: NextRequest) {
 
         const newExpirationDate = new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString()
 
-        const response = await fetch(`${instance_url}/services/data/v61.0/tooling/sobjects/TraceFlag/${id}`, {
+        const response = await fetch(`${instance_url}/services/data/v59.0/tooling/sobjects/TraceFlag/${id}`, {
             method: 'PATCH',
             headers: {
                 Authorization: authHeader,

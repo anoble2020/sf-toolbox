@@ -35,8 +35,8 @@ export default function UserNav({ username, orgDomain, orgId }: UserNavProps) {
             const sessionDomain = localStorage.getItem('sf_session_domain');
             
             if (sessionToken && sessionDomain?.includes(orgDomain)) {
-                const info = await introspectToken(sessionToken);
-                setTokenExpiration(info.remaining_minutes);
+                //const info = await introspectToken(sessionToken);
+                //setTokenExpiration(info.remaining_minutes);
                 setAuthMethod('session');
             } else if (localStorage.getItem('sf_refresh_token')) {
                 setAuthMethod('refresh');

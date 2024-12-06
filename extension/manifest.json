@@ -24,5 +24,8 @@
     "web_accessible_resources": [{
         "resources": ["icon_128.png"],
         "matches": ["*://*.salesforce.com/*", "*://*.force.com/*"]
-    }]
+    }],
+    "externally_connectable": {
+        "matches": ["https://sf-toolbox.com/*", "http://localhost:3000/*"]
+    }
   }

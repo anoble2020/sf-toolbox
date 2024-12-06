@@ -9,6 +9,7 @@ export interface SavedCodeBlock {
 export interface ConnectedOrg {
     orgId: string
     orgDomain: string
+    environmentType: string
     username: string
     refreshToken: string
     lastAccessed: string

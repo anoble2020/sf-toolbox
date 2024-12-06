@@ -5,9 +5,9 @@ import Image from 'next/image'
 
 export default function AuthPage() {
 
-    const handleLogin = async () => {
+    const handleLogin = async (environment: string) => {
         try {
-            const response = await fetch('/api/auth/authorize')
+            const response = await fetch(`/api/auth/authorize?environment=${environment}`)
             const { authUrl } = await response.json()
             
             if (!authUrl) {
@@ -25,11 +25,11 @@ export default function AuthPage() {
         <div className="relative flex flex-col items-center justify-center min-h-screen">
             <div
                 style={{
-                    backgroundImage: "url('/auth_bg_design.jpg')",
+                    backgroundImage: "url('/icon_128.png')",
                     backgroundRepeat: 'repeat',
-                    backgroundSize: 100,
+                    backgroundSize: 50,
                     backgroundPosition: 'center',
-                    opacity: 0.1,
+                    opacity: 0.2,
                     position: 'absolute',
                     top: 0,
                     left: 0,
@@ -43,7 +43,7 @@ export default function AuthPage() {
                     <Image src="/icon_128_purp.png" alt="SF Toolkit Logo" width={128} height={128} priority />
                     <h1 className="text-2xl font-semibold mb-8">sf toolbox</h1>
                     <div className="flex gap-4">
-                        <Button size="lg" onClick={handleLogin} className="font-medium">
+                        <Button size="lg" onClick={() => handleLogin('sandbox')} className="font-medium bg-slate-600 dark:bg-background">
                             <Image
                                 src="/sf_cloud_logo.png"
                                 alt="SF Logo"
@@ -57,7 +57,7 @@ export default function AuthPage() {
                             />
                             Sandbox
                         </Button>
-                        <Button size="lg" onClick={handleLogin} className="font-medium">
+                        <Button size="lg" onClick={() => handleLogin('production')} className="font-medium bg-slate-600 dark:bg-background">
                             <Image
                                 src="/sf_cloud_logo.png"
                                 alt="SF Logo"

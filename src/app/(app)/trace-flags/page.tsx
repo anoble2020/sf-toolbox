@@ -48,11 +48,14 @@ export default function TraceFlagsPage() {
           const cachedData = localStorage.getItem('cached_trace_flags')
           if (cachedData) {
               const parsed = JSON.parse(cachedData)
+              console.log('parsed', parsed)
               const debugLevels = parsed.levels as DebugLevel[]
               const users = parsed.users as SalesforceUser[]
               const flags = parsed.flags as TraceFlag[]
+              console.log('flags', flags)
               if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
                   if (mounted) {
+                      console.log('using cached data, mounted:', mounted)
                       setTraceFlags(flags)
                       setUsers(users)
                       setDebugLevels(debugLevels)
@@ -96,6 +99,7 @@ export default function TraceFlagsPage() {
     const handleRenew = async (id: string) => {
         try {
             setRefreshing(true)
+            console.log('renewing trace flag:', id)
             await renewTraceFlag(id)
 
             // Update cache with new expiration date

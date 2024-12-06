@@ -10,12 +10,17 @@ export default function SessionAuthPage() {
 
     useEffect(() => {
         const sessionToken = searchParams.get('session_token')
-        const instanceUrl = searchParams.get('instance_url')
+        let instanceUrl = searchParams.get('instance_url')
         const domain = searchParams.get('domain')
 
         if (!sessionToken || !instanceUrl || !domain) {
             console.error('Missing required parameters')
             return
+        }
+
+        // Correct the instance URL if it contains lightning.force.com
+        if (instanceUrl.includes('lightning.force.com')) {
+            instanceUrl = instanceUrl.replace('lightning.force.com', 'my.salesforce.com');
         }
 
         // Store the session information

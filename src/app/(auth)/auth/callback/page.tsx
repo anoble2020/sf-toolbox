@@ -13,18 +13,17 @@ function CallbackContent() {
     const code = searchParams.get('code')
     const error = searchParams.get('error')
     const error_description = searchParams.get('error_description')
+    const state = searchParams.get('state')
 
     useEffect(() => {
-
         if (error) {
-            console.error('OAuth Error:', error)
-            console.error('Error Description:', error_description)
+            console.error('OAuth error:', { error, error_description })
             router.push('/auth')
             return
         }
 
-        if (!code) {
-            console.error('No auth code received')
+        if (!code || !state) {
+            console.error('Missing required parameters:', { code, state })
             router.push('/auth')
             return
         }
@@ -35,88 +34,94 @@ function CallbackContent() {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'state': state || ''
             },
             body: JSON.stringify({ code }),
         })
-            .then(async (response) => {
-                if (!response.ok) {
-                    const errorData = await response.json()
-                    console.error('Token endpoint error:', {
-                        status: response.status,
-                        statusText: response.statusText,
-                        data: errorData,
-                    })
-                    throw new Error(`HTTP error! status: ${response.status}`)
-                }
-                return response.json()
-            })
-            .then((data) => {
-                console.log('Received data from token endpoint:', data)
-
-                if (!data.tokens?.refresh_token) {
-                    console.error('No refresh token in response:', data)
-                    router.push('/auth')
-                    return
-                }
-
-                if (!data.user) {
-                    console.error('No user data in response:', data)
-                    router.push('/auth')
-                    return
-                }
-
-                console.log('got user info:', data.user)
-                // Store in localStorage for client-side access
-                localStorage.setItem('sf_refresh_token', data.tokens.refresh_token)
-                localStorage.setItem('sf_user_info', JSON.stringify(data.user))
-
-                // Store in cookies for server-side access
-                document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
-
-                // Make sure we have a user ID before creating trace flag
-                if (data.user.user_id) {
-                    createTraceFlag(data.user.user_id, '', 'USER_DEBUG')
-                        .then(() => {
-                            console.log('Trace flag created successfully')
-                            toast.success('Trace flag created successfully for your user')
+        .then(async (response) => {
+            const contentType = response.headers.get('content-type')
+            if (!response.ok) {
+                const errorText = contentType?.includes('application/json') 
+                    ? await response.json()
+                    : await response.text()
+                console.error('Token exchange failed:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText
                 })
-                        .catch((error: any) => {
-                            if (!error.message?.includes('trace flag already exists')) {
-                                console.error('Failed to create trace flag:', error)
-                                toast.error('Failed to create trace flag for your user')
-                            } else {
-                                console.log('Trace flag already exists')
-                                toast.info('An active trace flag already exists for your user')
-                            }
-                        })
-                } else {
-                    console.warn('No user ID found in response:', data)
-                }
+                throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`)
+            }
+            return response.json()
+        })
+        .then((data) => {
+            if (data.error) {
+                throw new Error(data.error)
+            }
 
-                // Store connected org
-                const connectedOrgs = JSON.parse(localStorage.getItem('connected_orgs') || '[]')
-                const newOrg: ConnectedOrg = {
-                    orgId: data.user.orgId,
-                    orgDomain: data.user.orgDomain,
-                    username: data.user.username,
-                    refreshToken: data.tokens.refresh_token,
-                    lastAccessed: new Date().toISOString()
-                }
-                // Update or add the org
-                const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
-                    ? connectedOrgs.map((org: ConnectedOrg) => org.orgId === newOrg.orgId ? newOrg : org)
-                    : [...connectedOrgs, newOrg]
-
-                localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
-
-                console.log('Stored tokens, redirecting to /dashboard...')
-                router.push('/dashboard')
-            })
-            .catch((error: any) => {
-                console.error('Fetch error:', error)
+            if (!data.tokens?.refresh_token) {
+                console.error('No refresh token in response:', data)
                 router.push('/auth')
-            })
-    }, [code, error, error_description, router])
+                return
+            }
+
+            if (!data.user) {
+                console.error('No user data in response:', data)
+                router.push('/auth')
+                return
+            }
+
+            // Store in localStorage for client-side access
+            localStorage.setItem('sf_refresh_token', data.tokens.refresh_token)
+            localStorage.setItem('sf_user_info', JSON.stringify(data.user))
+
+            // Store in cookies for server-side access
+            document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
+
+            // Make sure we have a user ID before creating trace flag
+            if (data.user.user_id) {
+                createTraceFlag(data.user.user_id, '', 'USER_DEBUG')
+                    .then(() => {
+                        console.log('Trace flag created successfully')
+                        toast.success('Trace flag created successfully for your user')
+                    })
+                    .catch((error: any) => {
+                        if (!error.message?.includes('trace flag already exists')) {
+                            console.error('Failed to create trace flag:', error)
+                            toast.error('Failed to create trace flag for your user')
+                        } else {
+                            console.log('Trace flag already exists')
+                            toast.info('An active trace flag already exists for your user')
+                        }
+                    })
+            } else {
+                console.warn('No user ID found in response:', data)
+            }
+
+            // Store connected org
+            const connectedOrgs = JSON.parse(localStorage.getItem('connected_orgs') || '[]')
+            const newOrg: ConnectedOrg = {
+                orgId: data.user.orgId,
+                orgDomain: data.user.orgDomain,
+                username: data.user.username,
+                environmentType: data.user.environmentType,
+                refreshToken: data.tokens.refresh_token,
+                lastAccessed: new Date().toISOString()
+            }
+            // Update or add the org
+            const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
+                ? connectedOrgs.map((org: ConnectedOrg) => org.orgId === newOrg.orgId ? newOrg : org)
+                : [...connectedOrgs, newOrg]
+
+            localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
+
+            console.log('Stored tokens, redirecting to /dashboard...')
+            router.push('/dashboard')
+        })
+        .catch((error: any) => {
+            console.error('Token exchange error:', error.message)
+            router.push('/auth')
+        })
+    }, [code, error, error_description, router, state])
 
     return (
         <div className="flex items-center justify-center min-h-screen">
