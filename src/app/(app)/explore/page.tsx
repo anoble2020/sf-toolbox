@@ -9,6 +9,7 @@ import { X, Loader2 } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
 import { BundleViewer } from '@/components/BundleViewer'
 import { CACHE_DURATIONS } from '@/lib/constants'
+import { storage } from '@/lib/storage'
 
 interface FileItem {
     Id: string
@@ -41,7 +42,8 @@ interface FileData {
 }
 
 const fetchFiles = async () => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
     if (!refreshToken) {
         throw new Error('No refresh token found')
     }
@@ -98,7 +100,8 @@ function ExploreContent() {
         const fetchData = async () => {
             try {
                 setLoading(true)
-                const refreshToken = localStorage.getItem('sf_refresh_token')
+                const currentDomain = storage.getCurrentDomain() as string
+                const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
                 if (!refreshToken) throw new Error('No refresh token found')
 
                 const { access_token, instance_url } = await refreshAccessToken(refreshToken)

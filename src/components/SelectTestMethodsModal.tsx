@@ -51,9 +51,9 @@ export function SelectTestMethodsModal({ isOpen, onClose, testClass, onRunTests 
 
                     <div className="space-y-2 max-h-[300px] overflow-y-auto">
                         {testClass.testMethods.map((method) => (
-                            <div key={method} className="flex items-center space-x-2">
+                            <div key={`${testClass.Name}-${method}`} className="flex items-center space-x-2">
                                 <Checkbox
-                                    id={method}
+                                    id={`${testClass.Name}-${method}`}
                                     checked={selectedMethods.includes(method)}
                                     onCheckedChange={(checked) => {
                                         if (checked) {
@@ -63,7 +63,7 @@ export function SelectTestMethodsModal({ isOpen, onClose, testClass, onRunTests 
                                         }
                                     }}
                                 />
-                                <Label htmlFor={method}>{method}</Label>
+                                <Label htmlFor={`${testClass.Name}-${method}`}>{method}</Label>
                             </div>
                         ))}
                     </div>

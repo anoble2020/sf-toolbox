@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
     try {
-        // Get test run ID from URL path
+        // Get test run ID from URL path and clean it
         const segments = request.nextUrl.pathname.split('/')
-        const testRunId = segments[segments.length - 1].replace(/"/g, '')
+        const testRunId = segments[segments.length - 1].replace(/["']/g, '')
         
         const instance_url = request.nextUrl.searchParams.get('instance_url')
         const authorization = request.headers.get('authorization')

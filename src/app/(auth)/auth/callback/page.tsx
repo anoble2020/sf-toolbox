@@ -6,126 +6,130 @@ import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 import { ConnectedOrg } from '@/lib/types'
+import { storage } from '@/lib/storage'
 
 function CallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const code = searchParams.get('code')
-    const error = searchParams.get('error')
-    const error_description = searchParams.get('error_description')
-    const state = searchParams.get('state')
 
     useEffect(() => {
-        if (error) {
-            console.error('OAuth error:', { error, error_description })
-            router.push('/auth')
-            return
-        }
-
+        const code = searchParams.get('code')
+        const state = searchParams.get('state')
         if (!code || !state) {
-            console.error('Missing required parameters:', { code, state })
+            console.error('No authorization code or state found in URL')
             router.push('/auth')
             return
         }
 
-        console.log('Received auth code, exchanging for tokens...', code)
+        console.log('Starting auth callback process...')
 
-        fetch(`${window.location.origin}/api/auth/token`, {
+        fetch('/api/auth/token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'state': state || ''
+                state: state
             },
             body: JSON.stringify({ code }),
         })
         .then(async (response) => {
-            const contentType = response.headers.get('content-type')
             if (!response.ok) {
-                const errorText = contentType?.includes('application/json') 
-                    ? await response.json()
-                    : await response.text()
-                console.error('Token exchange failed:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    error: errorText
-                })
-                throw new Error(`Token exchange failed: ${response.status} ${response.statusText}`)
+                const errorData = await response.json()
+                throw new Error(`Token exchange failed: ${errorData.error || response.statusText}`)
             }
             return response.json()
         })
         .then((data) => {
-            if (data.error) {
-                throw new Error(data.error)
+            try {
+                console.log('Received auth data:', { 
+                    hasTokens: !!data.tokens, 
+                    hasUser: !!data.user,
+                    domain: data.user?.orgDomain 
+                })
+
+                if (data.error) {
+                    throw new Error(data.error)
+                }
+
+                if (!data.tokens?.refresh_token || !data.user) {
+                    throw new Error('Invalid response: Missing tokens or user data')
+                }
+
+                const domain = data.user.orgDomain
+                if (!domain) {
+                    throw new Error('Invalid response: Missing orgDomain')
+                }
+
+                // Set this as the current domain
+                storage.setCurrentDomain(domain)
+
+                // Store domain-specific data
+                storage.setForDomain(domain, 'refresh_token', data.tokens.refresh_token)
+                storage.setForDomain(domain, 'user_info', data.user)
+                storage.setForDomain(domain, 'last_accessed', new Date())
+
+                // Update connected orgs list
+                const newOrg = {
+                    orgId: data.user.orgId,
+                    orgDomain: domain,
+                    username: data.user.username,
+                    environmentType: data.user.environmentType,
+                    refreshToken: data.tokens.refresh_token,
+                    lastAccessed: new Date().toISOString()
+                }
+
+                // Get existing connected orgs
+                const connectedOrgs = storage.getFromDomain(domain, 'connected_orgs') || []
+                console.log('Existing connected orgs:', connectedOrgs)
+                
+                // Update or add the org
+                const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
+                    ? connectedOrgs.map((org: ConnectedOrg) => 
+                        org.orgId === newOrg.orgId ? newOrg : org
+                    )
+                    : [...connectedOrgs, newOrg]
+
+                storage.setForDomain(domain, 'connected_orgs', updatedOrgs)
+
+                // Store refresh token in cookie for server-side access
+                document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
+
+                // Create trace flag if needed
+                if (data.user.user_id) {
+                    return createTraceFlag(data.user.user_id, '', 'USER_DEBUG')
+                        .then(() => {
+                            console.log('Trace flag created successfully')
+                            toast.success('Trace flag created successfully for your user')
+                        })
+                        .catch((error: any) => {
+                            if (!error.message?.includes('trace flag already exists')) {
+                                console.error('Failed to create trace flag:', error)
+                                toast.error('Failed to create trace flag for your user')
+                            } else {
+                                console.log('Trace flag already exists')
+                                toast.info('An active trace flag already exists for your user')
+                            }
+                        })
+                }
+            } catch (error) {
+                console.error('Error processing auth data:', error)
+                throw error
             }
-
-            if (!data.tokens?.refresh_token) {
-                console.error('No refresh token in response:', data)
-                router.push('/auth')
-                return
-            }
-
-            if (!data.user) {
-                console.error('No user data in response:', data)
-                router.push('/auth')
-                return
-            }
-
-            // Store in localStorage for client-side access
-            localStorage.setItem('sf_refresh_token', data.tokens.refresh_token)
-            localStorage.setItem('sf_user_info', JSON.stringify(data.user))
-
-            // Store in cookies for server-side access
-            document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
-
-            // Make sure we have a user ID before creating trace flag
-            if (data.user.user_id) {
-                createTraceFlag(data.user.user_id, '', 'USER_DEBUG')
-                    .then(() => {
-                        console.log('Trace flag created successfully')
-                        toast.success('Trace flag created successfully for your user')
-                    })
-                    .catch((error: any) => {
-                        if (!error.message?.includes('trace flag already exists')) {
-                            console.error('Failed to create trace flag:', error)
-                            toast.error('Failed to create trace flag for your user')
-                        } else {
-                            console.log('Trace flag already exists')
-                            toast.info('An active trace flag already exists for your user')
-                        }
-                    })
-            } else {
-                console.warn('No user ID found in response:', data)
-            }
-
-            // Store connected org
-            const connectedOrgs = JSON.parse(localStorage.getItem('connected_orgs') || '[]')
-            const newOrg: ConnectedOrg = {
-                orgId: data.user.orgId,
-                orgDomain: data.user.orgDomain,
-                username: data.user.username,
-                environmentType: data.user.environmentType,
-                refreshToken: data.tokens.refresh_token,
-                lastAccessed: new Date().toISOString()
-            }
-            // Update or add the org
-            const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
-                ? connectedOrgs.map((org: ConnectedOrg) => org.orgId === newOrg.orgId ? newOrg : org)
-                : [...connectedOrgs, newOrg]
-
-            localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
-
-            console.log('Stored tokens, redirecting to /dashboard...')
+        })
+        .then(() => {
+            console.log('Auth process complete, redirecting to dashboard...')
             router.push('/dashboard')
         })
-        .catch((error: any) => {
-            console.error('Token exchange error:', error.message)
+        .catch((error) => {
+            console.error('Auth callback error:', error)
+            toast.error(error.message || 'Authentication failed')
             router.push('/auth')
         })
-    }, [code, error, error_description, router, state])
+    }, [router, searchParams])
 
     return (
         <div className="flex items-center justify-center min-h-screen">
-            <Loader2 className="w-8 h-8 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Completing authentication...</span>
         </div>
     )
 }

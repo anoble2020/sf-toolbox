@@ -1,49 +1,37 @@
+import { storage } from "./storage";
+
 interface TokenResponse {
     access_token: string
     instance_url: string
 }
 
-interface SessionInfo {
-    sessionId: string
-    domain: string
-    orgDomain: string
-}
-
 export const getAccessToken = async (): Promise<TokenResponse> => {
-    const sessionToken = localStorage.getItem('sf_session_token')
-    const sessionDomain = localStorage.getItem('sf_session_domain')
-    const currentOrgDomain = localStorage.getItem('sf_org_domain')
-    const refreshToken = localStorage.getItem('sf_refresh_token')
-
-    // Only use session token if it matches the current org
-    // Removing for now sicne we can't introspect SF-issued tokens (client key
-    // and secret will not match target org)
-    if (sessionToken && sessionDomain && currentOrgDomain) {
-        if (sessionDomain.includes(currentOrgDomain)) {
-            const info = await introspectToken(sessionToken)
-            if (info.remaining_minutes > 0) {
-                return {
-                    access_token: sessionToken,
-                    instance_url: `https://${currentOrgDomain}`
-                }
-            }
-        }
+    const currentDomain = storage.getCurrentDomain();
+    if (!currentDomain) {
+        throw new Error('No current domain found');
     }
 
-    // Fall back to refresh token if session is invalid or doesn't match org
-    if (refreshToken) {
-        return refreshAccessToken(refreshToken)
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token');
+    if (!refreshToken) {
+        throw new Error('No refresh token found');
     }
 
-    throw new Error('No valid tokens found for current org')
+    return refreshAccessToken(refreshToken);
 }
 
 export const refreshAccessToken = async (refreshToken: string): Promise<TokenResponse> => {
+    const currentDomain = storage.getCurrentDomain();
+    if (!currentDomain) {
+        throw new Error('No current domain found');
+    }
+
+    const userInfo = storage.getFromDomain(currentDomain, 'user_info');
+    
     const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'userInfo': localStorage.getItem('sf_user_info') || '',
+            'userInfo': JSON.stringify(userInfo || {}),
         },
         body: JSON.stringify({ refresh_token: refreshToken }),
     })

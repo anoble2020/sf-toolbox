@@ -8,6 +8,7 @@ import UserNav from '@/components/UserNav'
 import { ApiLimits } from '@/components/ApiLimits'
 import { useEffect, useState } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
+import { storage } from '@/lib/storage'
 
 interface LayoutProps {
     children: React.ReactNode
@@ -24,12 +25,19 @@ export default function Layout({ children }: LayoutProps) {
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
 
     useEffect(() => {
-        const userInfoStr = localStorage.getItem('sf_user_info')
-        if (userInfoStr) {
+        const currentDomain = storage.getCurrentDomain()
+        if (currentDomain) {
             try {
-                setUserInfo(JSON.parse(userInfoStr))
+                const domainUserInfo = storage.getFromDomain(currentDomain, 'user_info')
+                if (domainUserInfo) {
+                    setUserInfo({
+                        username: domainUserInfo.username,
+                        orgDomain: domainUserInfo.orgDomain,
+                        orgId: domainUserInfo.orgId
+                    })
+                }
             } catch (e: unknown) {
-                console.error('Failed to parse user info:', e)
+                console.error('Failed to get user info:', e)
             }
         }
     }, [])

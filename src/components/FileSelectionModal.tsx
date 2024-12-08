@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, FileCode, Package, Zap, ChevronRight, ChevronDown } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
+import { storage } from '@/lib/storage'
 
 interface FileSelectionModalProps {
     open: boolean
@@ -85,7 +86,8 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: Omit<Fi
     })
 
     useEffect(() => {
-        const cachedFiles = localStorage.getItem('cached_files')
+        const currentDomain = storage.getCurrentDomain() as string
+        const cachedFiles = storage.getFromDomain(currentDomain, 'cached_files')
         if (cachedFiles) {
             const parsed = JSON.parse(cachedFiles)
             setFiles({

@@ -51,7 +51,16 @@ export async function GET(request: Request) {
         const testClasses = classes.filter((cls: { Body: string }) => cls.Body.includes('@isTest') || cls.Body.includes('@IsTest'));
         
         // Process and combine the results using SymbolTable to get test methods
-        const classesWithMethods = testClasses.map((cls: { Id: string, Name: string, SymbolTable: { methods: { annotations: { name: string }[] }[] } }) => {
+        const classesWithMethods = testClasses.map((cls: { 
+            Id: string, 
+            Name: string, 
+            SymbolTable: { 
+                methods: { 
+                    name: string,
+                    annotations: { name: string }[] 
+                }[] 
+            } 
+        }) => {
             const methods = cls.SymbolTable?.methods || []
             const testMethods = methods.filter((method) =>
                 method.annotations?.some(
@@ -62,7 +71,7 @@ export async function GET(request: Request) {
             return {
                 Id: cls.Id,
                 Name: cls.Name,
-                testMethods: testMethods.map((method) => method.annotations.map(ann => ann.name)),
+                testMethods: testMethods.map(method => method.name),
             }
         })
 

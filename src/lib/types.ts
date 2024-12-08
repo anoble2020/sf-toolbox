@@ -3,7 +3,6 @@ export interface SavedCodeBlock {
     name: string
     code: string
     lastModified: string
-    orgId: string
 }
 
 export interface ConnectedOrg {

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { CheckCircle2, Plus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import type { ConnectedOrg } from '@/lib/types'
-import { Plus, LogOut, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ConnectedOrg } from '@/lib/types'
+import { storage } from '@/lib/storage'
 
 interface OrgSwitcherModalProps {
     isOpen: boolean
@@ -16,42 +17,41 @@ export function OrgSwitcherModal({ isOpen, onClose, currentOrgId }: OrgSwitcherM
     const router = useRouter()
 
     useEffect(() => {
-        const storedOrgs = localStorage.getItem('connected_orgs')
-        if (storedOrgs) {
-            setOrgs(JSON.parse(storedOrgs))
+        const currentDomain = storage.getCurrentDomain()
+        if (currentDomain) {
+            const connectedOrgs = storage.getFromDomain(currentDomain, 'connected_orgs') || []
+            setOrgs(connectedOrgs)
         }
     }, [isOpen])
 
     const handleSwitch = (org: ConnectedOrg) => {
-        // Clear all cached data except code blocks
-        Object.keys(localStorage).forEach(key => {
-            if (!key.startsWith('saved_code_blocks_') && key !== 'connected_orgs') {
-                localStorage.removeItem(key)
-            }
-        })
-
-        // Set the new refresh token and user info
-        localStorage.setItem('sf_refresh_token', org.refreshToken)
-        localStorage.setItem('sf_user_info', JSON.stringify({
+        // Set new domain as current
+        storage.setCurrentDomain(org.orgDomain)
+        
+        // Store refresh token and user info for new domain
+        storage.setForDomain(org.orgDomain, 'refresh_token', org.refreshToken)
+        storage.setForDomain(org.orgDomain, 'user_info', {
             orgId: org.orgId,
             orgDomain: org.orgDomain,
             username: org.username
-        }))
+        })
 
         // Update last accessed
         const updatedOrgs = orgs.map(o => ({
             ...o,
             lastAccessed: o.orgId === org.orgId ? new Date().toISOString() : o.lastAccessed
         }))
-        localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
+        storage.setForDomain(org.orgDomain, 'connected_orgs', updatedOrgs)
 
         onClose()
         router.refresh()
     }
 
     const handleAddNew = () => {
-        localStorage.removeItem('sf_refresh_token')
-        localStorage.removeItem('sf_user_info')
+        const currentDomain = storage.getCurrentDomain()
+        if (currentDomain) {
+            storage.clearDomain(currentDomain)
+        }
         router.push('/auth')
         onClose()
     }

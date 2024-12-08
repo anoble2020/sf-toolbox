@@ -5,7 +5,7 @@ export async function PATCH(
     { params }: { params: { id: string } }
 ) {
     try {
-        const id = params.id
+        const { id } = await params
         const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         console.log('Renewing trace flag:', { id, instance_url })
@@ -58,10 +58,12 @@ export async function PATCH(
     }
 }
 
-export async function DELETE(request: NextRequest) {
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
     try {
-      const segments = request.nextUrl.pathname.split('/')
-        const id = segments[segments.length - 2]
+        const { id } = await params
         const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         if (!instance_url) {
@@ -73,7 +75,14 @@ export async function DELETE(request: NextRequest) {
             return new Response('Unauthorized', { status: 401 })
         }
 
-        const response = await fetch(`${instance_url}/services/data/v59.0/tooling/sobjects/TraceFlag/${id}`, {
+        const url = `${instance_url}/services/data/v59.0/tooling/sobjects/TraceFlag/${id}`
+        console.log('Attempting to delete trace flag:', {
+            url,
+            id,
+            authHeader: authHeader.substring(0, 20) + '...' // Log partial auth header for debugging
+        })
+
+        const response = await fetch(url, {
             method: 'DELETE',
             headers: {
                 Authorization: authHeader,
@@ -83,9 +92,11 @@ export async function DELETE(request: NextRequest) {
         if (!response.ok) {
             const error = await response.json()
             console.error('Failed to delete trace flag:', {
+                url,
                 status: response.status,
                 statusText: response.statusText,
                 error: error,
+                headers: Object.fromEntries(response.headers.entries())
             })
             return new Response(JSON.stringify(error), {
                 status: response.status,

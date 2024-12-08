@@ -9,6 +9,7 @@ import { refreshAccessToken } from '@/lib/auth'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { storage } from '@/lib/storage'
 
 interface CoverageData {
     ApexClassOrTriggerId: string
@@ -38,7 +39,8 @@ export function CoverageSheet({ open, onOpenChange }: CoverageSheetProps) {
         setError(null)
 
         try {
-            const refreshToken = localStorage.getItem('sf_refresh_token')
+            const currentDomain = storage.getCurrentDomain() as string
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
             if (!refreshToken) {
                 throw new Error('No refresh token found')
             }

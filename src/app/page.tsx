@@ -3,19 +3,20 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import { storage } from '@/lib/storage'
 
 export default function RootPage() {
     const router = useRouter()
 
     useEffect(() => {
-        const refreshToken = localStorage.getItem('sf_refresh_token')
-        const sessionToken = localStorage.getItem('sf_session_token')
-        const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true'
-
-        if (refreshToken || sessionToken || bypassAuth) {
-            router.push('/dashboard')
+        const currentDomain = storage.getCurrentDomain();
+        const hasRefreshToken = currentDomain && storage.getFromDomain(currentDomain, 'refresh_token');
+        const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
+    
+        if (hasRefreshToken || bypassAuth) {
+            router.push('/dashboard');
         } else {
-            router.push('/auth')
+            router.push('/auth');
         }
     }, [router])
 

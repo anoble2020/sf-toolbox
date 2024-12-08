@@ -5,6 +5,7 @@ import { LogsTable } from "@/components/LogsTable"
 import { LogViewer } from "@/components/LogViewer"
 import { queryLogs, getLogBody } from "@/lib/salesforce"
 import { Loader2, MousePointerClick } from "lucide-react"
+import { storage } from "@/lib/storage"
 
 interface Log {
   id: string
@@ -143,8 +144,9 @@ export default function LogsPage() {
   }, [])
 
   useEffect(() => {
+    const currentDomain = storage.getCurrentDomain() as string
+    const storedUserInfo = storage.getFromDomain(currentDomain, 'user_info')
     // Set user info after component mounts
-    const storedUserInfo = JSON.parse(localStorage.getItem('sf_user_info') || '{}')
     setUserInfo(storedUserInfo)
   }, [])
 

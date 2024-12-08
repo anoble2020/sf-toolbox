@@ -1,6 +1,6 @@
 import { refreshAccessToken } from '../lib/auth'
 import { apiLimitsActions } from '../lib/store'
-
+import { storage } from '@/lib/storage'
 interface SalesforceResponse<T> {
     records: T[]
     totalSize: number
@@ -53,8 +53,8 @@ export function updateApiLimitsFromHeaders(headers: Headers) {
 }
 
 export const queryLogs = async (currentUserOnly = false): Promise<ApexLog[]> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
-    const userInfo = JSON.parse(localStorage.getItem('sf_user_info') || '{}')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
 
     if (!refreshToken) {
         throw new Error('No refresh token found')
@@ -118,7 +118,8 @@ export const queryLogs = async (currentUserOnly = false): Promise<ApexLog[]> => 
 }
 
 export const getLogBody = async (logId: string): Promise<string> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
     if (!refreshToken) {
         throw new Error('No refresh token found')
     }
@@ -143,8 +144,9 @@ export const getLogBody = async (logId: string): Promise<string> => {
     return response.text()
 }
 
-export const createTraceFlag = async (userId: string, debugLevelId: string, logType: string): Promise<void> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+export const createTraceFlag = async (userId: string, debugLevelId: string, logType: string): Promise<TraceFlag> => {
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
     if (!refreshToken) {
         throw new Error('No refresh token found')
     }
@@ -181,7 +183,12 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
         // If active trace flag exists, return early
         if (existingFlags.records && existingFlags.records.length > 0) {
             console.log('Found existing trace flag:', existingFlags.records[0])
-            return // Just return instead of throwing an error
+            return {
+                Id: existingFlags.records[0].Id,
+                TracedEntityId: userId,
+                ExpirationDate: existingFlags.records[0].ExpirationDate,
+                DebugLevelId: debugLevelId
+            } as TraceFlag
         }
 
         let queriedDebugLevelId
@@ -258,6 +265,7 @@ export const createTraceFlag = async (userId: string, debugLevelId: string, logT
 
         const data = await response.json()
         console.log('Trace flag created successfully:', data)
+        return data
     } catch (error: any) {
         console.error('Error creating trace flag:', error)
         throw error
@@ -282,8 +290,8 @@ export interface TraceFlag {
 }
 
 export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
-
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
     if (!refreshToken) {
         throw new Error('No refresh token found')
     }
@@ -341,7 +349,8 @@ export const queryTraceFlags = async (): Promise<TraceFlag[]> => {
 
 export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
     console.log('Renewing trace flag with id:', traceFlagId)
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
 
     if (!refreshToken) {
         throw new Error('No refresh token found')
@@ -385,7 +394,8 @@ export const renewTraceFlag = async (traceFlagId: string): Promise<void> => {
 }
 
 export const deleteTraceFlag = async (traceFlagId: string): Promise<void> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
 
     if (!refreshToken) {
         throw new Error('No refresh token found')
@@ -428,7 +438,8 @@ export interface DebugLevel {
 }
 
 export const queryUsers = async (): Promise<SalesforceUser[]> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
 
     if (!refreshToken) {
         throw new Error('No refresh token found')
@@ -464,7 +475,8 @@ export const queryUsers = async (): Promise<SalesforceUser[]> => {
 }
 
 export const queryDebugLevels = async (): Promise<DebugLevel[]> => {
-    const refreshToken = localStorage.getItem('sf_refresh_token')
+    const currentDomain = storage.getCurrentDomain() as string
+    const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
 
     if (!refreshToken) {
         throw new Error('No refresh token found')

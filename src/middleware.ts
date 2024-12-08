@@ -10,7 +10,7 @@ export function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/auth', request.url))
     }
 
-    if (request.nextUrl.pathname === '/auth' && (hasRefreshToken || bypassAuth)) {
+    if (isAuthPath && (hasRefreshToken || bypassAuth)) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
     }
 

@@ -10,6 +10,7 @@ import { refreshAccessToken } from '@/lib/auth'
 import { toast } from 'sonner'
 import { useApiLimits } from '@/lib/store'
 import { updateApiLimitsFromHeaders } from '@/lib/salesforce'
+import { storage } from '@/lib/storage'
 
 interface QueryResult {
     records: Record<string, any>[]
@@ -39,23 +40,25 @@ export default function QueryPage() {
         const trimmedQuery = query.trim()
         
         // Check if query starts with SELECT (case-insensitive)
-        const selectMatch = trimmedQuery.match(/SELECT\s+([\w\s,]*)\s+FROM/i)
+        const selectMatch = trimmedQuery.match(/^SELECT\s+([\w\s,.*]*)\s+FROM/i)
         
         if (!selectMatch || selectMatch.index === undefined) {
             return query // Return original query if no valid SELECT found
         }
         
         // Check if Id field is already present
-        const hasId = selectMatch[1].split(',').some(field => 
-            field.trim().toLowerCase() === 'id' || 
-            field.trim().toLowerCase().endsWith('.id')
+        const fields = selectMatch[1].split(',').map(field => field.trim().toLowerCase())
+        const hasId = fields.some(field => 
+            field === 'id' || 
+            field.endsWith('.id') ||
+            field === '*'  // If selecting all fields, Id will be included
         )
         
         if (!hasId) {
-            // Insert Id as the first field
-            const beforeFrom = trimmedQuery.slice(0, selectMatch.index + 7) // "SELECT "
-            const afterFields = trimmedQuery.slice(selectMatch.index + 7 + selectMatch[1].length)
-            return `${beforeFrom}Id, ${selectMatch[1]}${afterFields}`
+            // Insert Id after SELECT
+            const beforeFields = trimmedQuery.slice(0, selectMatch.index + 6) // "SELECT"
+            const afterSelect = trimmedQuery.slice(selectMatch.index + 6)
+            return `${beforeFields} Id, ${afterSelect.trimStart()}`
         }
         
         return query
@@ -66,7 +69,8 @@ export default function QueryPage() {
         setError(null)
 
         try {
-            const refreshToken = localStorage.getItem('sf_refresh_token')
+            const currentDomain = storage.getCurrentDomain() as string
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
 
             if (!refreshToken) {
                 throw new Error('No refresh token found')

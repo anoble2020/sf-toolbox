@@ -6,15 +6,12 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
     DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Settings, LogOut, User, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { OrgSwitcherModal } from '@/components/OrgSwitcherModal'
-import { introspectToken } from '@/lib/auth'
+import { storage } from '@/lib/storage'
 
 interface UserNavProps {
     username: string
@@ -26,40 +23,19 @@ interface UserNavProps {
 export default function UserNav({ username, orgDomain, orgId }: UserNavProps) {
     const router = useRouter()
     const [isOrgSwitcherOpen, setIsOrgSwitcherOpen] = useState(false)
-    const [tokenExpiration, setTokenExpiration] = useState<number | null>(null);
-    const [authMethod, setAuthMethod] = useState<'session' | 'refresh' | null>(null);
-
-    useEffect(() => {
-        const checkToken = async () => {
-            const sessionToken = localStorage.getItem('sf_session_token');
-            const sessionDomain = localStorage.getItem('sf_session_domain');
-            
-            if (sessionToken && sessionDomain?.includes(orgDomain)) {
-                //const info = await introspectToken(sessionToken);
-                //setTokenExpiration(info.remaining_minutes);
-                setAuthMethod('session');
-            } else if (localStorage.getItem('sf_refresh_token')) {
-                setAuthMethod('refresh');
-            }
-        };
-        
-        checkToken();
-        const interval = setInterval(checkToken, 60000);
-        return () => clearInterval(interval);
-    }, [orgDomain]);
 
     const handleSwitchUser = () => {
         setIsOrgSwitcherOpen(true)
     }
 
     const handleSignOut = () => {
-        localStorage.removeItem('sf_refresh_token')
-        localStorage.removeItem('sf_user_info')
+        const currentDomain = storage.getCurrentDomain()
+        if (currentDomain) {
+            storage.clearDomain(currentDomain)
+        }
         document.cookie = 'sf_refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
         router.push('/auth')
     }
-
-    console.log(username, orgDomain)
 
     return (
         <>
@@ -67,14 +43,6 @@ export default function UserNav({ username, orgDomain, orgId }: UserNavProps) {
                 <div className="flex flex-col items-end">
                     <span className="text-sm font-light">{username}</span>
                     <span className="text-xs text-muted-foreground">{orgDomain}</span>
-                    {authMethod === 'session' && tokenExpiration !== null && (
-                        <span className="text-xs text-muted-foreground">
-                            Session expires in {tokenExpiration}m
-                        </span>
-                    )}
-                    <span className="text-xs text-muted-foreground">
-                        Using {authMethod} auth
-                    </span>
                 </div>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>

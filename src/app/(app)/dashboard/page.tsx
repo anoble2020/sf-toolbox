@@ -5,8 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Code, Users, Bell, Database, Shield, Radio, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
-import { format, parseISO } from 'date-fns'
 import { formatInTimeZone } from 'date-fns-tz'
+import { storage } from '@/lib/storage'
 
 const SalesforceDashboard = () => {
     const [timeRange] = useState('24h')
@@ -15,17 +15,21 @@ const SalesforceDashboard = () => {
     const [orgData, setOrgData] = useState<any>(null)
     const [userTimezone, setUserTimezone] = useState<string | null>(null)
     useEffect(() => {
-        const userTimezone = localStorage.getItem('sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const currentDomain = storage.getCurrentDomain()
+        const userTimezone = storage.getFromDomain(currentDomain || '', 'sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
         setUserTimezone(userTimezone)
     }, [])
 
     useEffect(() => {
         const fetchOrgData = async () => {
             try {
-                const refreshToken = localStorage.getItem('sf_refresh_token')
-                if (!refreshToken) throw new Error('No refresh token found')
+                const currentDomain = storage.getCurrentDomain();
+                if (!currentDomain) throw new Error('No current domain found');
 
-                const { access_token, instance_url } = await refreshAccessToken(refreshToken)
+                const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token');
+                if (!refreshToken) throw new Error('No refresh token found');
+
+                const { access_token, instance_url } = await refreshAccessToken(refreshToken);
 
                 const response = await fetch(
                     `/api/salesforce/limits?instance_url=${encodeURIComponent(instance_url)}`,
@@ -34,25 +38,22 @@ const SalesforceDashboard = () => {
                             Authorization: `Bearer ${access_token}`,
                         },
                     },
-                )
+                );
 
-                if (!response.ok) throw new Error('Failed to fetch org data')
+                if (!response.ok) throw new Error('Failed to fetch org data');
 
-                const data = await response.json()
-                console.log('Full response:', data)
-                console.log('Events data:', data.events)
-                console.log('First event dataPoints:', data.events?.[0]?.dataPoints)
-                setOrgData(data)
+                const data = await response.json();
+                setOrgData(data);
             } catch (err) {
-                console.error('Error in fetchOrgData:', err)
-                setError(err instanceof Error ? err.message : 'Failed to fetch org data')
+                console.error('Error in fetchOrgData:', err);
+                setError(err instanceof Error ? err.message : 'Failed to fetch org data');
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
-        }
+        };
 
-        fetchOrgData()
-    }, [])
+        fetchOrgData();
+    }, []);
 
     if(loading){
         return (
