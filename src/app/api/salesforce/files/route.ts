@@ -83,6 +83,16 @@ export async function GET(request: Request) {
         }
 
         const data = await response.json()
+        
+        // Add logging to debug the response
+        console.log('Composite response:', JSON.stringify(data, null, 2))
+
+        // Check if each subrequest was successful
+        data.compositeResponse.forEach((response: any, index: number) => {
+            if (response.httpStatusCode !== 200) {
+                console.error(`Subrequest ${index} failed:`, response)
+            }
+        })
 
         // Process and format the response
         const files = {
@@ -112,15 +122,12 @@ export async function GET(request: Request) {
             })),
         }
 
-        //console.log('Final processed files:', JSON.stringify(files, null, 2))
+        // Add logging to debug the processed files
+        console.log('Processed files:', JSON.stringify(files, null, 2))
+
         return NextResponse.json(files)
     } catch (error) {
-        console.error('Error:', error)
-        return NextResponse.json(
-            {
-                error: error instanceof Error ? error.message : 'Internal server error',
-            },
-            { status: 500 },
-        )
+        console.error('Error in files route:', error)
+        return NextResponse.json({ error: 'Failed to fetch files' }, { status: 500 })
     }
 }

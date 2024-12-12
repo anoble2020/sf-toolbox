@@ -10,13 +10,7 @@ import { refreshAccessToken } from '@/lib/auth'
 import { BundleViewer } from '@/components/BundleViewer'
 import { CACHE_DURATIONS } from '@/lib/constants'
 import { storage } from '@/lib/storage'
-
-interface FileItem {
-    Id: string
-    Name: string
-    Type: string
-    LastModifiedDate: string
-}
+import { FileItem } from '@/types/files'
 
 interface FileMetadata {
     Id: string
@@ -43,13 +37,30 @@ interface FileData {
 
 const fetchFiles = async () => {
     const currentDomain = storage.getCurrentDomain() as string
+    
+    // First check for cached files
+    const cachedFiles = storage.getFromDomain(currentDomain, 'cached_files')
+    if (cachedFiles) {
+        const parsed = JSON.parse(cachedFiles)
+        const lastFetched = parsed.lastFetched || 0
+        const cacheAge = Date.now() - lastFetched
+        
+        // If cache is less than 1 hour old, use it
+        if (cacheAge < CACHE_DURATIONS.LONG) {
+            console.log('Using cached files')
+            return parsed
+        }
+    }
+
+    // If no cache or cache is old, fetch fresh data
+    console.log('Fetching fresh files data')
     const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
     if (!refreshToken) {
         throw new Error('No refresh token found')
     }
 
     const { access_token, instance_url } = await refreshAccessToken(refreshToken)
-
+    
     const response = await fetch(`/api/salesforce/files?instance_url=${encodeURIComponent(instance_url)}`, {
         headers: {
             Authorization: `Bearer ${access_token}`,
@@ -57,20 +68,28 @@ const fetchFiles = async () => {
     })
 
     if (!response.ok) {
+        const errorText = await response.text()
+        console.error('Failed to fetch files:', errorText)
         throw new Error('Failed to fetch files')
     }
 
     const data = await response.json()
-    return {
+    
+    // Cache the fresh data
+    const filesData = {
         ...data,
         lastFetched: Date.now(),
     }
+    storage.setForDomain(currentDomain, 'cached_files', JSON.stringify(filesData))
+    
+    return filesData
 }
 
 function ExploreContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
     const [file, setFile] = useState<FileMetadata | null>(null)
+    const [files, setFiles] = useState<Record<string, FileItem[]>>({})
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -136,6 +155,26 @@ function ExploreContent() {
         fetchData()
     }, [fileId, fileType, coverageParam])
 
+    useEffect(() => {
+        const loadFiles = async () => {
+            try {
+                const data = await fetchFiles()
+                console.log('Setting files state with:', data)
+                setFiles({
+                    apexClasses: data.apexClasses || [],
+                    triggers: data.triggers || [],
+                    lwc: data.lwc || [],
+                    aura: data.aura || []
+                })
+            } catch (error: any) {
+                console.error('Failed to load files:', error)
+                setError(error instanceof Error ? error.message : 'Failed to load files')
+            }
+        }
+
+        loadFiles()
+    }, [])
+
     const handleClose = () => {
         setFile(null)
         setError(null)
@@ -175,6 +214,7 @@ function ExploreContent() {
                             router.push(`/explore?id=${id}&type=${type}`)
                             setIsModalOpen(false)
                         }}
+                        files={files}
                     />
                 </div>
             </div>
@@ -208,6 +248,7 @@ function ExploreContent() {
                             router.push(`/explore?id=${id}&type=${type}`)
                             setIsModalOpen(false)
                         }}
+                        files={files}
                     />
                 </div>
                 <Button

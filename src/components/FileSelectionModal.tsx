@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Search, FileCode, Package, Zap, ChevronRight, ChevronDown } from 'lucide-react'
 import { refreshAccessToken } from '@/lib/auth'
 import { storage } from '@/lib/storage'
+import { FileItem } from '@/types/files'
 
 interface FileSelectionModalProps {
     open: boolean
@@ -14,7 +15,7 @@ interface FileSelectionModalProps {
     files: Record<string, FileItem[]>
 }
 
-interface FileItem {
+/*interface FileItem {
     Id: string
     Name: string
     Type: string
@@ -22,7 +23,7 @@ interface FileItem {
     LastModifiedDate: string
     Path?: string
     SubComponents?: FileItem[]
-}
+}*/
 
 interface FileTreeItemProps {
     item: FileItem
@@ -76,7 +77,7 @@ function FileTreeItem({ item, onSelect }: FileTreeItemProps) {
     )
 }
 
-export function FileSelectionModal({ open, onOpenChange, onFileSelect }: Omit<FileSelectionModalProps, 'files'>) {
+export function FileSelectionModal({ open, onOpenChange, onFileSelect, files: providedFiles }: FileSelectionModalProps) {
     const [searchQuery, setSearchQuery] = useState('')
     const [files, setFiles] = useState<Record<string, FileItem[]>>({
         apexClasses: [],
@@ -86,6 +87,13 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: Omit<Fi
     })
 
     useEffect(() => {
+        // First try to use provided files
+        if (providedFiles && Object.keys(providedFiles).length > 0) {
+            setFiles(providedFiles)
+            return
+        }
+
+        // Fall back to cached files if no provided files
         const currentDomain = storage.getCurrentDomain() as string
         const cachedFiles = storage.getFromDomain(currentDomain, 'cached_files')
         if (cachedFiles) {
@@ -97,7 +105,7 @@ export function FileSelectionModal({ open, onOpenChange, onFileSelect }: Omit<Fi
                 aura: parsed.aura || [],
             })
         }
-    }, [open]) // Only update when modal opens
+    }, [open, providedFiles]) // Update when modal opens or files prop changes
 
     const filterFiles = (items: FileItem[]) => {
         if (!searchQuery) return items
