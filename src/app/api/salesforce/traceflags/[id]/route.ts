@@ -61,7 +61,7 @@ export async function PATCH(
 export async function DELETE(
     request: NextRequest,
     { params }: { params: { id: string } }
-) {
+): Promise<Response> {
     try {
         const { id } = params
         const instance_url = request.nextUrl.searchParams.get('instance_url')
@@ -76,12 +76,6 @@ export async function DELETE(
         }
 
         const url = `${instance_url}/services/data/v59.0/tooling/sobjects/TraceFlag/${id}`
-        console.log('Attempting to delete trace flag:', {
-            url,
-            id,
-            authHeader: authHeader.substring(0, 20) + '...' // Log partial auth header for debugging
-        })
-
         const response = await fetch(url, {
             method: 'DELETE',
             headers: {
@@ -91,13 +85,6 @@ export async function DELETE(
 
         if (!response.ok) {
             const error = await response.json()
-            console.error('Failed to delete trace flag:', {
-                url,
-                status: response.status,
-                statusText: response.statusText,
-                error: error,
-                headers: Object.fromEntries(response.headers.entries())
-            })
             return new Response(JSON.stringify(error), {
                 status: response.status,
                 headers: { 'Content-Type': 'application/json' },
@@ -105,8 +92,7 @@ export async function DELETE(
         }
 
         return new Response(null, { status: 204 })
-    } catch (error: any) {
-        console.error('Error deleting trace flag:', error)
+    } catch (error) {
         return new Response(JSON.stringify({ error: 'Failed to delete trace flag' }), {
             status: 500,
             headers: { 'Content-Type': 'application/json' },
