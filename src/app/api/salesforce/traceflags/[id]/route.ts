@@ -1,6 +1,6 @@
 import { type NextRequest } from 'next/server'
 
-type Props = {
+interface RouteHandlerContext {
     params: {
         id: string
     }
@@ -65,18 +65,18 @@ export async function PATCH(
 }
 
 export async function DELETE(
-    request: NextRequest,
-    props: Props
+    req: NextRequest,
+    context: RouteHandlerContext
 ): Promise<Response> {
     try {
-        const { id } = props.params
-        const instance_url = request.nextUrl.searchParams.get('instance_url')
+        const { id } = context.params
+        const instance_url = req.nextUrl.searchParams.get('instance_url')
 
         if (!instance_url) {
             return new Response('Missing instance_url', { status: 400 })
         }
 
-        const authHeader = request.headers.get('Authorization')
+        const authHeader = req.headers.get('Authorization')
         if (!authHeader) {
             return new Response('Unauthorized', { status: 401 })
         }
