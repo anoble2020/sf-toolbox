@@ -1,4 +1,10 @@
-import { NextRequest } from 'next/server'
+import { type NextRequest } from 'next/server'
+
+type Props = {
+    params: {
+        id: string
+    }
+}
 
 export async function PATCH(
     request: NextRequest,
@@ -60,10 +66,10 @@ export async function PATCH(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    props: Props
 ): Promise<Response> {
     try {
-        const { id } = params
+        const { id } = props.params
         const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         if (!instance_url) {
