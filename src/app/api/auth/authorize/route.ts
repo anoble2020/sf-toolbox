@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     const authUrl =
-        `https://${environmentType}.salesforce.com/services/oauth2/authorize?` +
+        `https://${environmentType}.salesforce.com/services/oauth2/authorize?prompt=login&` +
         `client_id=${SF_CLIENT_ID}&` +
         `redirect_uri=${encodeURIComponent(SF_REDIRECT_URI)}&` +
         `response_type=code&` +

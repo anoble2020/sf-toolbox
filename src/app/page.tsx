@@ -9,11 +9,28 @@ export default function RootPage() {
     const router = useRouter()
 
     useEffect(() => {
-        const currentDomain = storage.getCurrentDomain();
-        const hasRefreshToken = currentDomain && storage.getFromDomain(currentDomain, 'refresh_token');
+        console.log('Root page mounted')
+        
+        const currentDomain = storage.getCurrentDomain()
+        console.log('Current domain:', currentDomain)
+        
+        let hasValidAuth = false
+        if (currentDomain) {
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
+            const userInfo = storage.getFromDomain(currentDomain, 'user_info')
+            console.log('Auth check:', { 
+                hasRefreshToken: !!refreshToken, 
+                hasUserInfo: !!userInfo 
+            })
+            
+            hasValidAuth = true
+        }
+
+        console.log('hasValidAuth', hasValidAuth)
+
         const bypassAuth = process.env.NEXT_PUBLIC_BYPASS_AUTH === 'true';
     
-        if (hasRefreshToken || bypassAuth) {
+        if (hasValidAuth || bypassAuth) {
             router.push('/dashboard');
         } else {
             router.push('/auth');

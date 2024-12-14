@@ -2,16 +2,22 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export function middleware(request: NextRequest) {
+    console.log('Middleware running for:', request.nextUrl.pathname)
+    
     const isAuthPath = request.nextUrl.pathname.startsWith('/auth')
+    const isRootPath = request.nextUrl.pathname === '/'
     const hasRefreshToken = request.cookies.get('sf_refresh_token')
     const bypassAuth = process.env.BYPASS_AUTH === 'true'
 
-    if (!isAuthPath && !hasRefreshToken && !bypassAuth) {
-        return NextResponse.redirect(new URL('/auth', request.url))
+    // Allow all auth-related paths to proceed
+    if (isAuthPath || isRootPath) {
+        return NextResponse.next()
     }
 
-    if (isAuthPath && (hasRefreshToken || bypassAuth)) {
-        return NextResponse.redirect(new URL('/dashboard', request.url))
+    // Only check auth for non-auth paths
+    if (!hasRefreshToken && !bypassAuth) {
+        console.log('Redirecting to auth from middleware - no refresh token')
+        return NextResponse.redirect(new URL('/auth', request.url))
     }
 
     return NextResponse.next()
@@ -19,7 +25,6 @@ export function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        // Match all paths except:
         '/((?!api|_next/static|_next/image|favicon.ico|auth_bg_design\\.jpg|icon_128_purp\\.png|.*\\.png$).*)',
     ],
 }

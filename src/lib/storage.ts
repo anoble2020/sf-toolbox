@@ -25,29 +25,79 @@ interface GlobalData {
 }
 
 export const storage = {
+    getAllConnectedOrgs(): ConnectedOrg[] {
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
+        const orgMap = new Map<string, ConnectedOrg>()
+        
+        // Iterate through all domains (excluding current_domain key)
+        Object.keys(allData).forEach(key => {
+            if (key !== 'current_domain') {
+                const domainData = allData[key]
+                if (domainData.connected_orgs?.length) {
+                    // For each org in the domain, only keep the most recently accessed version
+                    domainData.connected_orgs.forEach((org: ConnectedOrg) => {
+                        const existingOrg = orgMap.get(org.orgId)
+                        if (!existingOrg || new Date(org.lastAccessed) > new Date(existingOrg.lastAccessed)) {
+                            orgMap.set(org.orgId, org)
+                        }
+                    })
+                }
+            }
+        })
+        
+        // Convert map back to array and sort by last accessed
+        return Array.from(orgMap.values())
+            .sort((a, b) => new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime())
+    },
+
     setCurrentDomain(domain: string) {
-        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}');
-        allData.current_domain = domain;
-        localStorage.setItem('sf_data', JSON.stringify(allData));
+        console.log('Setting current domain:', domain)
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
+        allData.current_domain = domain
+        localStorage.setItem('sf_data', JSON.stringify(allData))
     },
 
     getCurrentDomain(): string | null {
-        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}');
-        return allData.current_domain || null;
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
+        const domain = allData.current_domain || null
+        console.log('Getting current domain:', domain)
+        return domain
     },
 
-    getDomainData(domain: string): DomainData {
-        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}');
-        return allData[domain] || {};
-    },
-
-    setDomainData(domain: string, data: DomainData) {
-        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}');
-        allData[domain] = data;
-        localStorage.setItem('sf_data', JSON.stringify(allData));
+    addConnectedOrg(org: ConnectedOrg) {
+        console.log('Adding connected org:', org)
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
+        
+        // Initialize domain data if it doesn't exist
+        if (!allData[org.orgDomain]) {
+            allData[org.orgDomain] = {}
+        }
+        
+        // Get existing orgs for this domain
+        const domainOrgs = allData[org.orgDomain].connected_orgs || []
+        
+        // Update or add the org
+        const updatedOrgs = domainOrgs.some((existing: any) => existing.orgId === org.orgId)
+            ? domainOrgs.map((existing: any) => 
+                existing.orgId === org.orgId ? { ...org, lastAccessed: new Date().toISOString() } : existing
+              )
+            : [...domainOrgs, { ...org, lastAccessed: new Date().toISOString() }]
+        
+        // Update the domain's data
+        allData[org.orgDomain] = {
+            ...allData[org.orgDomain],
+            connected_orgs: updatedOrgs,
+            refresh_token: org.refreshToken, // Ensure refresh token is stored at domain level
+            last_accessed: new Date().toISOString()
+        }
+        
+        localStorage.setItem('sf_data', JSON.stringify(allData))
+        console.log('Updated storage:', allData)
+        return updatedOrgs
     },
 
     setForDomain(domain: string, key: string, value: any) {
+        console.log(`Setting ${key} for domain:`, domain, value)
         const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
         if (!allData[domain]) {
             allData[domain] = {}
@@ -57,8 +107,11 @@ export const storage = {
     },
 
     getFromDomain(domain: string, key: string) {
+        console.log(`Getting ${key} from domain:`, domain)
         const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
-        return allData[domain]?.[key]
+        const value = allData[domain]?.[key]
+        console.log(`Value for ${key}:`, value)
+        return value
     },
 
     setGlobal(key: 'theme', value: string) {
@@ -89,14 +142,6 @@ export const storage = {
         localStorage.setItem('sf_data', JSON.stringify(allData));
     },
 
-    addConnectedOrg(org: ConnectedOrg) {
-        const orgs = this.getConnectedOrgs();
-        const updatedOrgs = orgs.some(existingOrg => existingOrg.orgId === org.orgId)
-            ? orgs.map(existingOrg => existingOrg.orgId === org.orgId ? org : existingOrg)
-            : [...orgs, org];
-        this.setConnectedOrgs(updatedOrgs);
-    },
-
     setObjectForDomain(domain: string, key: string, value: object) {
         const storageKey = `${domain}:${key}`
         const existingData = localStorage.getItem(domain) || '{}'
@@ -111,5 +156,22 @@ export const storage = {
         const existingData = localStorage.getItem(domain) || '{}'
         const domainData = JSON.parse(existingData)
         return domainData[key] // Return object directly
+    },
+
+    getAllDomains(): string[] {
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
+        return Object.keys(allData).filter(key => key !== 'current_domain')
+    },
+
+    updateConnectedOrgs(newOrg: ConnectedOrg) {
+        const currentDomain = this.getCurrentDomain()
+        if (!currentDomain) return
+
+        const connectedOrgs = this.getAllConnectedOrgs()
+        const updatedOrgs = connectedOrgs.some(org => org.orgId === newOrg.orgId)
+            ? connectedOrgs.map(org => org.orgId === newOrg.orgId ? newOrg : org)
+            : [...connectedOrgs, newOrg]
+
+        this.setForDomain(currentDomain, 'connected_orgs', updatedOrgs)
     }
 }; 

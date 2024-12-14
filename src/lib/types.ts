@@ -8,7 +8,7 @@ export interface SavedCodeBlock {
 export interface ConnectedOrg {
     orgId: string
     orgDomain: string
-    environmentType: string
+    environmentType: 'sandbox' | 'production'
     username: string
     refreshToken: string
     lastAccessed: string
