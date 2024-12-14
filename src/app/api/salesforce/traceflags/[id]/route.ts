@@ -60,10 +60,10 @@ export async function PATCH(
 
 export async function DELETE(
     request: NextRequest,
-    { params }: { params: { id: string } }
+    context: { params: { id: string } }
 ) {
     try {
-        const { id } = await params
+        const { id } = context.params
         const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         if (!instance_url) {
