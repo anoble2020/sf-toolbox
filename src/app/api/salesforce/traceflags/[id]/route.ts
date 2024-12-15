@@ -59,18 +59,18 @@ export async function PATCH(
 }
 
 export async function DELETE(
-    request: Request,
-    context: { params: { id: string } }
+    req: NextRequest,
+    { params }: { params: { id: string } }
 ) {
     try {
-        const { id } = context.params
-        const instance_url = new URL(request.url).searchParams.get('instance_url')
+        const { id } = params
+        const instance_url = new URL(req.url).searchParams.get('instance_url')
 
         if (!instance_url) {
             return new Response('Missing instance_url', { status: 400 })
         }
 
-        const authHeader = request.headers.get('Authorization')
+        const authHeader = req.headers.get('Authorization')
         if (!authHeader) {
             return new Response('Unauthorized', { status: 401 })
         }
