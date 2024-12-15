@@ -58,12 +58,18 @@ export async function PATCH(
     }
 }
 
+type RouteContext = {
+    params: {
+        id: string
+    }
+}
+
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
-) {
+    context: RouteContext
+): Promise<Response> {
     try {
-        const { id } = params
+        const { id } = context.params
         const instance_url = new URL(req.url).searchParams.get('instance_url')
 
         if (!instance_url) {
