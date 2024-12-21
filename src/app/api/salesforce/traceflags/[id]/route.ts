@@ -1,11 +1,9 @@
 import { NextRequest } from 'next/server'
 
-export async function PATCH(
-    request: NextRequest,
-    { params }: { params: { id: string } }
-) {
+export async function PATCH(request: NextRequest) {
     try {
-        const { id } = await params
+        const segments = request.nextUrl.pathname.split('/')
+        const id = segments[segments.length - 1]
         const instance_url = request.nextUrl.searchParams.get('instance_url')
 
         console.log('Renewing trace flag:', { id, instance_url })
