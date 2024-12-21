@@ -59,8 +59,14 @@ export function OrgSwitcherModal({ isOpen, onClose, currentOrgId }: OrgSwitcherM
                 localStorage.setItem('temp_connected_orgs', JSON.stringify(connectedOrgs))
             }
 
+            // Add custom domain support
+            const params = new URLSearchParams({
+                connect: 'true',
+                environment: environment
+            })
+
             // Redirect to auth
-            window.location.href = `/auth?connect=true&environment=${environment}`
+            window.location.href = `/auth?${params.toString()}`
             onClose()
         } catch (error) {
             console.error('Error adding new org:', error)
