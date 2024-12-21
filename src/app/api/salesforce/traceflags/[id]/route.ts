@@ -1,4 +1,4 @@
-import { type NextRequest } from 'next/server'
+import { NextRequest } from 'next/server'
 
 export async function PATCH(
     request: NextRequest,
@@ -58,18 +58,10 @@ export async function PATCH(
     }
 }
 
-type RouteContext = {
-    params: {
-        id: string
-    }
-}
-
-export async function DELETE(
-    req: NextRequest,
-    context: RouteContext
-): Promise<Response> {
+export async function DELETE(req: NextRequest) {
     try {
-        const { id } = context.params
+        const segments = req.nextUrl.pathname.split('/')
+        const id = segments[segments.length - 1]
         const instance_url = new URL(req.url).searchParams.get('instance_url')
 
         if (!instance_url) {
