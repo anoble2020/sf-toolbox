@@ -1,15 +1,18 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 import { storage } from '@/lib/storage'
-import { createTraceFlag } from '@/lib/salesforce'
 import { toast } from 'sonner'
 import { ConnectedOrg } from '@/lib/types'
 
 export default function CallbackPage() {
-    return <CallbackContent />
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <CallbackContent />
+        </Suspense>
+    )
 }
 
 function CallbackContent() {
