@@ -47,7 +47,7 @@ function AuthContent() {
     }
 
     return (
-        <div className="container relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-1 lg:px-0">
+        <div className="container bg-background dark:bg-background relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-1 lg:px-0">
             <div className="flex flex-col items-center">
                 <Image src="/icon_128_purp.png" alt="SF Toolkit Logo" width={128} height={128} priority />
                 <h1 className="text-2xl font-semibold mb-8">
