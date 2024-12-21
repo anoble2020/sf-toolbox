@@ -58,7 +58,7 @@ function AuthContent() {
                     <Button 
                         size="lg" 
                         onClick={() => handleLogin('sandbox')} 
-                        className="font-medium bg-slate-600 dark:bg-background"
+                        className="font-medium bg-slate-600"
                         disabled={environment === 'production'}
                     >
                         <Image
@@ -72,12 +72,14 @@ function AuthContent() {
                                 paddingBottom: 10,
                             }}
                         />
-                        {environment === 'sandbox' ? 'Connect Sandbox' : 'Sandbox'}
+                        <div className="dark:text-white">
+                            {environment === 'sandbox' ? 'Connect Sandbox' : 'Sandbox'}
+                        </div>
                     </Button>
                     <Button 
                         size="lg" 
                         onClick={() => handleLogin('production')} 
-                        className="font-medium bg-slate-600 dark:bg-background"
+                        className="font-medium bg-slate-600"
                         disabled={environment === 'sandbox'}
                     >
                         <Image
@@ -91,7 +93,9 @@ function AuthContent() {
                                 paddingBottom: 10,
                             }}
                         />
-                        {environment === 'production' ? 'Connect Production' : 'Production'}
+                        <div className="dark:text-white">
+                            {environment === 'production' ? 'Connect Production' : 'Production'}
+                        </div>
                     </Button>
                 </div>
 
