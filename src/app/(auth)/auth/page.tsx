@@ -1,10 +1,12 @@
 'use client'
 
+import { Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
+import { Loader2 } from 'lucide-react'
 
-export default function AuthPage() {
+function AuthContent() {
     const searchParams = useSearchParams()
     const isConnecting = searchParams.get('connect') === 'true'
     const environment = searchParams.get('environment')
@@ -77,5 +79,20 @@ export default function AuthPage() {
                 </div>
             </div>
         </div>
+    )
+}
+
+export default function AuthPage() {
+    return (
+        <Suspense 
+            fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span className="ml-2">Loading...</span>
+                </div>
+            }
+        >
+            <AuthContent />
+        </Suspense>
     )
 }

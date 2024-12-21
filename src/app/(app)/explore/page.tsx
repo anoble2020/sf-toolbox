@@ -281,11 +281,14 @@ function ExploreContent() {
 
 export default function ExplorePage() {
     return (
-        <Suspense fallback={
-            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
-                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
-            </div>
-        }>
+        <Suspense 
+            fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span className="ml-2">Loading...</span>
+                </div>
+            }
+        >
             <ExploreContent />
         </Suspense>
     )

@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
 
-export default function SessionAuthPage() {
+function SessionContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -37,5 +37,20 @@ export default function SessionAuthPage() {
             <Loader2 className="h-8 w-8 animate-spin" />
             <span className="ml-2">Opening toolbox with session token...</span>
         </div>
+    )
+}
+
+export default function SessionAuthPage() {
+    return (
+        <Suspense 
+            fallback={
+                <div className="flex items-center justify-center min-h-screen">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                    <span className="ml-2">Loading...</span>
+                </div>
+            }
+        >
+            <SessionContent />
+        </Suspense>
     )
 } 
