@@ -324,7 +324,8 @@ export function formatLogs(lines: string[]): FormattedLine[] {
                 content.includes('SYSTEM_MODE_ENTER') ||
                 content.includes('SYSTEM_MODE_EXIT') ||
                 content.includes('SYSTEM_METHOD_ENTER') ||
-                content.includes('SYSTEM_METHOD_EXIT')
+                content.includes('SYSTEM_METHOD_EXIT') ||
+                content.includes('EXECUTION_STARTED')
             ) {
                 return false
             }
@@ -336,7 +337,11 @@ export function formatLogs(lines: string[]): FormattedLine[] {
         const { content, originalIndex } = validLines[i]
 
         // Handle regular lines when not collecting limits
-        if (!collectingLimits) {
+        if (!collectingLimits && 
+            !content.includes('CUMULATIVE_LIMIT_USAGE') && 
+            !content.includes('SOQL_EXECUTE_BEGIN') &&
+            !content.includes('CODE_UNIT_STARTED')
+        ) {
             const formattedLine = formatLogLine(content, originalIndex, lines)
             if (formattedLine) {
                 formattedLines.push(formattedLine)
