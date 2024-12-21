@@ -94,7 +94,7 @@ export default function Layout({ children }: LayoutProps) {
                     </p>
                     <div className="flex flex-col gap-2">
                         <a
-                            href="https://github.com/anoble2020/apex-toolkit"
+                            href="https://github.com/anoble2020/sf-toolbox"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm"
