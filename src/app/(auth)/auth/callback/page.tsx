@@ -2,137 +2,104 @@
 
 import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createTraceFlag } from '@/lib/salesforce'
-import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
+import { storage } from '@/lib/storage'
+import { toast } from 'sonner'
 import { ConnectedOrg } from '@/lib/types'
+
+export default function CallbackPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <CallbackContent />
+        </Suspense>
+    )
+}
 
 function CallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const code = searchParams.get('code')
-    const error = searchParams.get('error')
-    const error_description = searchParams.get('error_description')
 
     useEffect(() => {
+        const processAuth = async () => {
+            try {
+                const code = searchParams.get('code')
+                const state = searchParams.get('state')
+                
+                console.log('Processing auth with code:', code)
+                
+                if (!code || !state) {
+                    throw new Error('No authorization code or state found in URL')
+                }
 
-        if (error) {
-            console.error('OAuth Error:', error)
-            console.error('Error Description:', error_description)
-            router.push('/auth')
-            return
-        }
+                const response = await fetch('/api/auth/token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        state: state
+                    },
+                    body: JSON.stringify({ code }),
+                })
 
-        if (!code) {
-            console.error('No auth code received')
-            router.push('/auth')
-            return
-        }
-
-        console.log('Received auth code, exchanging for tokens...', code)
-
-        fetch(`${window.location.origin}/api/auth/token`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ code }),
-        })
-            .then(async (response) => {
                 if (!response.ok) {
                     const errorData = await response.json()
-                    console.error('Token endpoint error:', {
-                        status: response.status,
-                        statusText: response.statusText,
-                        data: errorData,
-                    })
-                    throw new Error(`HTTP error! status: ${response.status}`)
-                }
-                return response.json()
-            })
-            .then((data) => {
-                console.log('Received data from token endpoint:', data)
-
-                if (!data.tokens?.refresh_token) {
-                    console.error('No refresh token in response:', data)
-                    router.push('/auth')
-                    return
+                    throw new Error(`Token exchange failed: ${errorData.error || response.statusText}`)
                 }
 
-                if (!data.user) {
-                    console.error('No user data in response:', data)
-                    router.push('/auth')
-                    return
+                const data = await response.json()
+                console.log('Received auth data:', { ...data, tokens: '[REDACTED]' })
+
+                if (data.error) throw new Error(data.error)
+                if (!data.tokens?.refresh_token || !data.user) {
+                    throw new Error('Invalid response: Missing tokens or user data')
                 }
 
-                console.log('got user info:', data.user)
-                // Store in localStorage for client-side access
-                localStorage.setItem('sf_refresh_token', data.tokens.refresh_token)
-                localStorage.setItem('sf_user_info', JSON.stringify(data.user))
+                const domain = data.user.orgDomain
+                if (!domain) throw new Error('Invalid response: Missing orgDomain')
 
-                // Store in cookies for server-side access
-                document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/`
-
-                // Make sure we have a user ID before creating trace flag
-                if (data.user.user_id) {
-                    createTraceFlag(data.user.user_id, '', 'USER_DEBUG')
-                        .then(() => {
-                            console.log('Trace flag created successfully')
-                            toast.success('Trace flag created successfully for your user')
-                })
-                        .catch((error: any) => {
-                            if (!error.message?.includes('trace flag already exists')) {
-                                console.error('Failed to create trace flag:', error)
-                                toast.error('Failed to create trace flag for your user')
-                            } else {
-                                console.log('Trace flag already exists')
-                                toast.info('An active trace flag already exists for your user')
-                            }
-                        })
-                } else {
-                    console.warn('No user ID found in response:', data)
-                }
-
-                // Store connected org
-                const connectedOrgs = JSON.parse(localStorage.getItem('connected_orgs') || '[]')
+                // Create new org object
                 const newOrg: ConnectedOrg = {
                     orgId: data.user.orgId,
-                    orgDomain: data.user.orgDomain,
+                    orgDomain: domain,
                     username: data.user.username,
+                    environmentType: data.user.environmentType,
                     refreshToken: data.tokens.refresh_token,
                     lastAccessed: new Date().toISOString()
                 }
-                // Update or add the org
-                const updatedOrgs = connectedOrgs.some((org: ConnectedOrg) => org.orgId === newOrg.orgId)
-                    ? connectedOrgs.map((org: ConnectedOrg) => org.orgId === newOrg.orgId ? newOrg : org)
-                    : [...connectedOrgs, newOrg]
 
-                localStorage.setItem('connected_orgs', JSON.stringify(updatedOrgs))
+                console.log('Setting up new org:', { ...newOrg, refreshToken: '[REDACTED]' })
 
-                console.log('Stored tokens, redirecting to /dashboard...')
-                router.push('/dashboard')
-            })
-            .catch((error: any) => {
-                console.error('Fetch error:', error)
+                // First set the current domain
+                storage.setCurrentDomain(domain)
+
+                // Then store the refresh token
+                storage.setForDomain(domain, 'refresh_token', data.tokens.refresh_token)
+                
+                // Set the cookie
+                document.cookie = `sf_refresh_token=${data.tokens.refresh_token}; path=/; max-age=31536000`
+
+                // Add the connected org
+                storage.addConnectedOrg(newOrg)
+                
+                // Store user info
+                storage.setForDomain(domain, 'user_info', data.user)
+
+                console.log('Auth setup complete, redirecting...')
+                toast.success('Successfully connected organization')
+                window.location.href = '/dashboard'
+            } catch (error) {
+                console.error('Auth callback error:', error)
+                toast.error(error instanceof Error ? error.message : 'Authentication failed')
                 router.push('/auth')
-            })
-    }, [code, error, error_description, router])
+            }
+        }
+
+        processAuth()
+    }, [router, searchParams])
 
     return (
         <div className="flex items-center justify-center min-h-screen">
-            <Loader2 className="w-8 h-8 animate-spin" />
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Completing authentication...</span>
         </div>
-    )
-}
-
-export default function CallbackPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="w-8 h-8 animate-spin" />
-            </div>
-        }>
-            <CallbackContent />
-        </Suspense>
     )
 }

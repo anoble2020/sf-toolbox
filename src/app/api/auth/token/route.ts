@@ -3,48 +3,74 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request) {
     try {
         const { code } = await request.json()
+        const stateHeader = request.headers.get('state')
+        
+        console.log('Token request received:', { code, stateHeader })
+        
+        if (!stateHeader) {
+            console.error('Missing state header')
+            return NextResponse.json({ error: 'Missing state parameter' }, { status: 400 })
+        }
 
-        console.log('Received code in token endpoint:', code)
+        let environmentType
+        try {
+            const parsedState = JSON.parse(stateHeader)
+            environmentType = parsedState.environmentType
+            console.log('Parsed state:', { environmentType })
+        } catch (error) {
+            console.error('Failed to parse state:', error)
+            return NextResponse.json({ error: 'Invalid state parameter' }, { status: 400 })
+        }
 
+        //const domain = environmentType === 'test' ? 'test' : 'login'
+        
         if (!code) {
+            console.error('No code provided')
             return NextResponse.json({ error: 'No code provided' }, { status: 400 })
         }
 
-        console.log('Exchanging code for token...', code) // Debug log
+        const tokenUrl = `https://${environmentType}.salesforce.com/services/oauth2/token`
+        const params = {
+            grant_type: 'authorization_code',
+            client_id: process.env.SF_CLIENT_ID!,
+            client_secret: process.env.SF_CLIENT_SECRET!,
+            redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+            code: code,
+        }
 
-        const tokenResponse = await fetch('https://login.salesforce.com/services/oauth2/token', {
+        console.log('Making token request to:', tokenUrl)
+        console.log('With params:', { ...params, client_secret: '[REDACTED]' })
+
+        const tokenResponse = await fetch(tokenUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
             },
-            body: new URLSearchParams({
-                grant_type: 'authorization_code',
-                client_id: process.env.SF_CLIENT_ID!,
-                client_secret: process.env.SF_CLIENT_SECRET!,
-                redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-                code: code,
-            }),
+            body: new URLSearchParams(params),
         })
 
         const tokens = await tokenResponse.json()
-        console.log('Token response:', tokens) // Debug log
 
         if (!tokenResponse.ok) {
-            console.error('Token response error:', tokens)
-            return NextResponse.json({ error: tokens.error_description }, { status: 400 })
-        } else {
-            console.log('Token response ok:', tokenResponse) // Debug log
+            console.error('Token response error:', {
+                status: tokenResponse.status,
+                statusText: tokenResponse.statusText,
+                error: tokens
+            })
+            return NextResponse.json({ 
+                error: tokens.error_description || tokens.error || 'Token exchange failed',
+                details: tokens
+            }, { status: tokenResponse.status })
         }
 
-        // Get user info
-        const userInfoResponse = await fetch('https://login.salesforce.com/services/oauth2/userinfo', {
+        // Get user info from the correct domain
+        const userInfoResponse = await fetch(`https://${environmentType}.salesforce.com/services/oauth2/userinfo`, {
             headers: {
                 Authorization: `Bearer ${tokens.access_token}`,
             },
         })
 
         const userInfo = await userInfoResponse.json()
-        console.log('User info:', userInfo) // Debug log
 
         return NextResponse.json({
             tokens,
@@ -52,13 +78,17 @@ export async function POST(request: Request) {
                 username: userInfo.preferred_username,
                 orgDomain: tokens.instance_url.replace('https://', ''),
                 orgId: userInfo.organization_id,
+                environmentType: environmentType,
                 photoUrl: userInfo.picture,
                 timezone: userInfo.zoneinfo,
                 user_id: userInfo.user_id,
             },
         })
     } catch (error) {
-        console.error('Callback error:', error)
-        return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+        console.error('Token exchange error:', error)
+        return NextResponse.json({ 
+            error: error instanceof Error ? error.message : 'Internal server error',
+            details: error
+        }, { status: 500 })
     }
-}
+}   

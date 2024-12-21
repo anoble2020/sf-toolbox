@@ -3,8 +3,13 @@ import { NextResponse } from 'next/server'
 export async function POST(request: Request) {
     try {
         const { refresh_token } = await request.json()
+        const userInfo = request.headers.get('userInfo')
+        if (!userInfo) {
+            return NextResponse.json({ error: 'User info not found' }, { status: 400 })
+        }
 
-        const response = await fetch('https://login.salesforce.com/services/oauth2/token', {
+        const environmentType = JSON.parse(userInfo).environmentType
+        const response = await fetch(`https://${environmentType}.salesforce.com/services/oauth2/token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',

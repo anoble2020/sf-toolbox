@@ -5,6 +5,7 @@ import { LogsTable } from "@/components/LogsTable"
 import { LogViewer } from "@/components/LogViewer"
 import { queryLogs, getLogBody } from "@/lib/salesforce"
 import { Loader2, MousePointerClick } from "lucide-react"
+import { storage } from "@/lib/storage"
 
 interface Log {
   id: string
@@ -143,8 +144,9 @@ export default function LogsPage() {
   }, [])
 
   useEffect(() => {
+    const currentDomain = storage.getCurrentDomain() as string
+    const storedUserInfo = storage.getFromDomain(currentDomain, 'user_info')
     // Set user info after component mounts
-    const storedUserInfo = JSON.parse(localStorage.getItem('sf_user_info') || '{}')
     setUserInfo(storedUserInfo)
   }, [])
 
@@ -166,7 +168,7 @@ export default function LogsPage() {
         <div className="text-red-500">Error: {error}</div>
         <button 
           onClick={fetchLogs}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          className="mt-4 px-4 py-2 bg-blue-500 dark:bg-background text-white rounded hover:bg-blue-600"
         >
           Retry
         </button>
@@ -208,8 +210,8 @@ export default function LogsPage() {
         />
       ) : (
         <div className="flex flex-col h-[350px] justify-center items-center">
-          <MousePointerClick className="w-4 h-4 text-gray-500" />
-        <span className="text-sm text-gray-500">select a log to view</span>
+          <MousePointerClick className="w-4 h-4 text-gray-500 dark:text-white animate-pulse" />
+        <span className="text-sm text-gray-500 dark:text-white">select a log to view</span>
       </div>
     )}
       <LogsTable 

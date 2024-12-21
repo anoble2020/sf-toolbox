@@ -21,8 +21,14 @@ import { cn } from '@/lib/utils'
 import { AddTraceFlagModal } from '@/components/AddTraceFlagModal'
 import { CACHE_DURATIONS } from '@/lib/constants'
 import { toast } from 'sonner'
+import { storage } from '@/lib/storage'
 
 type SortDirection = 'asc' | 'desc'
+
+type CreateTraceFlagResponse = {
+    Id: string;
+    ExpirationDate?: string;
+}
 
 export default function TraceFlagsPage() {
     const [traceFlags, setTraceFlags] = useState<TraceFlag[]>([])
@@ -44,84 +50,92 @@ export default function TraceFlagsPage() {
     }, [])
 
     const loadData = async (mounted?: boolean) => {
-      try {
-          const cachedData = localStorage.getItem('cached_trace_flags')
-          if (cachedData) {
-              const parsed = JSON.parse(cachedData)
-              const debugLevels = parsed.levels as DebugLevel[]
-              const users = parsed.users as SalesforceUser[]
-              const flags = parsed.flags as TraceFlag[]
-              if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
-                  if (mounted) {
-                      setTraceFlags(flags)
-                      setUsers(users)
-                      setDebugLevels(debugLevels)
-                      setLoading(false)
-                  }
-                  return
-              }
-          }
+        try {
+            const currentDomain = storage.getCurrentDomain();
+            if (!currentDomain) {
+                throw new Error('No current domain found');
+            }
 
-          const [flags, usersList, levels] = await Promise.all([
-              queryTraceFlags(),
-              queryUsers(),
-              queryDebugLevels(),
-          ])
+            const cachedData = storage.getFromDomain(currentDomain, 'cached_trace_flags');
+            if (cachedData) {
+                const debugLevels = cachedData.levels as DebugLevel[];
+                const users = cachedData.users as SalesforceUser[];
+                const flags = cachedData.flags as TraceFlag[];
+                
+                if (Date.now() - cachedData.lastFetched < CACHE_DURATIONS.LONG) {
+                    if (mounted) {
+                        setTraceFlags(flags);
+                        setUsers(users);
+                        setDebugLevels(debugLevels);
+                        setLoading(false);
+                    }
+                    return;
+                }
+            }
 
-          if (mounted) {
-              setTraceFlags(flags)
-              setUsers(usersList)
-              setDebugLevels(levels)
-          }
+            const [flags, usersList, levels] = await Promise.all([
+                queryTraceFlags(),
+                queryUsers(),
+                queryDebugLevels(),
+            ]);
 
-          const cacheData = {
-              flags,
-              users: usersList,
-              levels,
-              lastFetched: Date.now(),
-          }
-          localStorage.setItem('cached_trace_flags', JSON.stringify(cacheData))
-      } catch (error: any) {
-          if (mounted) {
-              console.error('Failed to load data:', error)
-              setError(error instanceof Error ? error.message : 'Failed to load data')
-          }
-      } finally {
-          if (mounted) {
-              setLoading(false)
-          }
-      }
-  }
+            if (mounted) {
+                setTraceFlags(flags);
+                setUsers(usersList);
+                setDebugLevels(levels);
+            }
+
+            const cacheData = {
+                flags,
+                users: usersList,
+                levels,
+                lastFetched: Date.now(),
+            };
+            
+            storage.setForDomain(currentDomain, 'cached_trace_flags', cacheData);
+        } catch (error: any) {
+            if (mounted) {
+                console.error('Failed to load data:', error);
+                setError(error instanceof Error ? error.message : 'Failed to load data');
+            }
+        } finally {
+            if (mounted) {
+                setLoading(false);
+            }
+        }
+    };
 
     const handleRenew = async (id: string) => {
         try {
-            setRefreshing(true)
-            await renewTraceFlag(id)
+            setRefreshing(true);
+            await renewTraceFlag(id);
 
-            // Update cache with new expiration date
-            const cachedData = localStorage.getItem('cached_trace_flags')
+            const currentDomain = storage.getCurrentDomain();
+            if (!currentDomain) {
+                throw new Error('No current domain found');
+            }
+
+            const cachedData = storage.getFromDomain(currentDomain, 'cached_trace_flags');
             if (cachedData) {
-                const parsed = JSON.parse(cachedData)
-                const updatedFlags = parsed.flags.map((flag: TraceFlag) => {
+                const updatedFlags = cachedData.flags.map((flag: TraceFlag) => {
                     if (flag.Id === id) {
                         return {
                             ...flag,
                             ExpirationDate: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
                             StartDate: new Date().toISOString(),
-                        }
+                        };
                     }
-                    return flag
-                })
+                    return flag;
+                });
 
                 const updatedCache = {
-                    ...parsed,
+                    ...cachedData,
                     flags: updatedFlags,
                     lastFetched: Date.now(),
-                }
-                localStorage.setItem('cached_trace_flags', JSON.stringify(updatedCache))
-                setTraceFlags(updatedFlags)
+                };
+                storage.setForDomain(currentDomain, 'cached_trace_flags', updatedCache);
+                setTraceFlags(updatedFlags);
             } else {
-                // If no cache exists, fetch fresh data
                 await loadData()
             }
         } catch (error: any) {
@@ -140,18 +154,21 @@ export default function TraceFlagsPage() {
             setRefreshing(true)
             await deleteTraceFlag(id)
 
-            // Update cache after successful deletion
-            const cachedData = localStorage.getItem('cached_trace_flags')
+            const currentDomain = storage.getCurrentDomain();
+            if (!currentDomain) {
+                throw new Error('No current domain found');
+            }
+
+            const cachedData = storage.getFromDomain(currentDomain, 'cached_trace_flags');
             if (cachedData) {
-                const parsed = JSON.parse(cachedData)
-                const updatedFlags = parsed.flags.filter((flag: TraceFlag) => flag.Id !== id)
+                const updatedFlags = cachedData.flags.filter((flag: TraceFlag) => flag.Id !== id);
                 const updatedCache = {
-                    ...parsed,
+                    ...cachedData,
                     flags: updatedFlags,
                     lastFetched: Date.now(),
-                }
-                localStorage.setItem('cached_trace_flags', JSON.stringify(updatedCache))
-                setTraceFlags(updatedFlags)
+                };
+                storage.setForDomain(currentDomain, 'cached_trace_flags', updatedCache);
+                setTraceFlags(updatedFlags);
             } else {
                 await loadData()
             }
@@ -185,22 +202,33 @@ export default function TraceFlagsPage() {
 
     const handleCreateTraceFlag = async (userId: string, debugLevelId: string) => {
         try {
-            const newFlag = await createTraceFlag(userId, debugLevelId, 'USER_DEBUG')
+            console.log('Creating trace flag for:', { userId, debugLevelId })
+            
+            const newFlag = (await createTraceFlag(userId, debugLevelId, 'USER_DEBUG')) as unknown as CreateTraceFlagResponse;
+            
+            if (!newFlag?.Id) {
+                console.error('Invalid flag response:', newFlag)
+                throw new Error('Invalid response from create trace flag')
+            }
 
-            // Update cache with new trace flag
-            const cachedData = localStorage.getItem('cached_trace_flags')
+            const currentDomain = storage.getCurrentDomain()
+            if (!currentDomain) {
+                throw new Error('No current domain found')
+            }
+
+            const cachedData = storage.getFromDomain(currentDomain, 'cached_trace_flags')
+            console.log('Cached data:', cachedData)
+            
             if (cachedData) {
-                const parsed = JSON.parse(cachedData)
-                // Find the user and debug level info from our cached data
-                const user = parsed.users.find((u: SalesforceUser) => u.Id === userId)
-                const debugLevel = parsed.levels.find((d: DebugLevel) => d.Id === debugLevelId)
+                const user = cachedData.users.find((u: SalesforceUser) => u.Id === userId)
+                const debugLevel = cachedData.levels.find((d: DebugLevel) => d.Id === debugLevelId)
 
-                // Structure the new flag to match the expected format
+                console.log('Found user and debug level:', { user, debugLevel })
+
                 const structuredFlag: TraceFlag = {
-                    ...((newFlag as unknown) as Record<string, any>),
-                    Id: (newFlag as any).Id,
+                    Id: newFlag.Id,
                     TracedEntityId: userId,
-                    ExpirationDate: (newFlag as any).ExpirationDate,
+                    ExpirationDate: newFlag.ExpirationDate || new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
                     TracedEntity: {
                         Name: user?.Name || 'Unknown User',
                     },
@@ -210,13 +238,13 @@ export default function TraceFlagsPage() {
                     },
                 }
 
-                const updatedFlags = [...parsed.flags, structuredFlag]
+                const updatedFlags = [...cachedData.flags, structuredFlag]
                 const updatedCache = {
-                    ...parsed,
+                    ...cachedData,
                     flags: updatedFlags,
                     lastFetched: Date.now(),
                 }
-                localStorage.setItem('cached_trace_flags', JSON.stringify(updatedCache))
+                storage.setForDomain(currentDomain, 'cached_trace_flags', updatedCache)
                 setTraceFlags(updatedFlags)
                 toast.success('Trace flag created successfully')
             } else {

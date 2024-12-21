@@ -6,14 +6,12 @@ import {
     DropdownMenuTrigger,
     DropdownMenuSeparator,
     DropdownMenuShortcut,
-    DropdownMenuSub,
-    DropdownMenuSubContent,
-    DropdownMenuSubTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Settings, LogOut, User, Users } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { OrgSwitcherModal } from '@/components/OrgSwitcherModal'
+import { storage } from '@/lib/storage'
 
 interface UserNavProps {
     username: string
@@ -31,13 +29,13 @@ export default function UserNav({ username, orgDomain, orgId }: UserNavProps) {
     }
 
     const handleSignOut = () => {
-        localStorage.removeItem('sf_refresh_token')
-        localStorage.removeItem('sf_user_info')
+        const currentDomain = storage.getCurrentDomain()
+        if (currentDomain) {
+            storage.clearDomain(currentDomain)
+        }
         document.cookie = 'sf_refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;'
         router.push('/auth')
     }
-
-    console.log(username, orgDomain)
 
     return (
         <>

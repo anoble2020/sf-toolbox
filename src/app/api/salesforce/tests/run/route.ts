@@ -49,7 +49,7 @@ export async function POST(request: Request) {
         }
 
         // The response is just the ID as a string
-        const testRunId = await response.text()
+        const testRunId = (await response.text()).replace(/['"]/g, '')
         console.log('Test run created with ID:', testRunId)
 
         if (!testRunId) {

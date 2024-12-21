@@ -36,7 +36,7 @@ export function SelectTestMethodsModal({ isOpen, onClose, testClass, onRunTests 
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Select Test Methods - {testClass.Name}</DialogTitle>
+                    <DialogTitle>{testClass.Name}</DialogTitle>
                 </DialogHeader>
 
                 <div className="py-4">
@@ -49,11 +49,11 @@ export function SelectTestMethodsModal({ isOpen, onClose, testClass, onRunTests 
                         <Label htmlFor="select-all">Select All Methods</Label>
                     </div>
 
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
                         {testClass.testMethods.map((method) => (
-                            <div key={method} className="flex items-center space-x-2">
+                            <div key={`${testClass.Name}-${method}`} className="flex items-center space-x-2 mb-1">
                                 <Checkbox
-                                    id={method}
+                                    id={`${testClass.Name}-${method}`}
                                     checked={selectedMethods.includes(method)}
                                     onCheckedChange={(checked) => {
                                         if (checked) {
@@ -63,7 +63,7 @@ export function SelectTestMethodsModal({ isOpen, onClose, testClass, onRunTests 
                                         }
                                     }}
                                 />
-                                <Label htmlFor={method}>{method}</Label>
+                                <Label htmlFor={`${testClass.Name}-${method}`}>{method}</Label>
                             </div>
                         ))}
                     </div>

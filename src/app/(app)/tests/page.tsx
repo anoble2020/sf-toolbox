@@ -11,6 +11,7 @@ import { TestResultsTable } from '@/components/TestResultsTable'
 import { CoverageSheet } from '@/components/CoverageSheet'
 import { toast } from 'sonner'
 import { CACHE_DURATIONS } from '@/lib/constants'
+import { storage } from '@/lib/storage'
 
 interface TestClass {
     Id: string
@@ -43,17 +44,16 @@ export default function TestsPage() {
 
     const fetchTestClasses = async () => {
         try {
-            const cachedData = localStorage.getItem('cached_test_classes')
-            if (cachedData) {
-                const parsed = JSON.parse(cachedData)
-                if (Date.now() - parsed.lastFetched < CACHE_DURATIONS.LONG) {
-                    setTestClasses(parsed.classes)
-                    setLoading(false)
-                    return
-                }
+            const currentDomain = storage.getCurrentDomain() as string
+            const cachedData = storage.getFromDomain(currentDomain, 'cached_test_classes')
+            
+            if (cachedData?.classes && Date.now() - cachedData.lastFetched < CACHE_DURATIONS.LONG) {
+                setTestClasses(cachedData.classes)
+                setLoading(false)
+                return
             }
 
-            const refreshToken = localStorage.getItem('sf_refresh_token')
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
             if (!refreshToken) {
                 throw new Error('No refresh token found')
             }
@@ -74,13 +74,14 @@ export default function TestsPage() {
             }
 
             const data = await response.json()
-            setTestClasses(data)
-
+            
             const cacheData = {
                 classes: data,
                 lastFetched: Date.now(),
             }
-            localStorage.setItem('cached_test_classes', JSON.stringify(cacheData))
+            
+            storage.setForDomain(currentDomain, 'cached_test_classes', cacheData)
+            setTestClasses(data)
         } catch (error: any) {
             console.error('Error:', error)
             setError(error instanceof Error ? error.message : 'An error occurred')
@@ -100,7 +101,8 @@ export default function TestsPage() {
         }
 
         try {
-            const refreshToken = localStorage.getItem('sf_refresh_token')
+            const currentDomain = storage.getCurrentDomain() as string
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
             if (!refreshToken) {
                 toast.error('Not authenticated')
                 return

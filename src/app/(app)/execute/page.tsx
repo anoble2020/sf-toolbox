@@ -7,9 +7,10 @@ import { CodeEditor } from '@/components/CodeEditor'
 import { SaveCodeBlockModal } from '@/components/SaveCodeBlockModal'
 import { refreshAccessToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { Save, X, Trash2 } from 'lucide-react'
+import { Save, X } from 'lucide-react'
 import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
 import { SavedCodeBlock } from '@/lib/types'
+import { storage } from '@/lib/storage'
 
 export default function ExecutePage() {
     const [code, setCode] = useState('')
@@ -18,22 +19,30 @@ export default function ExecutePage() {
     const [savedBlocks, setSavedBlocks] = useState<SavedCodeBlock[]>([])
     const [activeBlock, setActiveBlock] = useState<SavedCodeBlock | null>(null)
     const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-    const [orgId, setOrgId] = useState('')
     const router = useRouter()
 
     // Load saved blocks on mount
     useEffect(() => {
-        const userInfo = JSON.parse(localStorage.getItem('sf_user_info') || '{}')
-        setOrgId(userInfo.orgId || '')
-        
-        const saved = localStorage.getItem(`saved_code_blocks_${userInfo.orgId}`)
-        if (saved) {
-            setSavedBlocks(JSON.parse(saved))
+        const currentDomain = storage.getCurrentDomain()
+        if (!currentDomain) {
+            console.error('No current domain found')
+            return
+        }
+
+        const savedCodeBlocks = storage.getFromDomain(currentDomain, 'saved_code_blocks')
+        if (savedCodeBlocks) {
+            setSavedBlocks(savedCodeBlocks)
         }
     }, [])
 
     const saveBlocks = (blocks: SavedCodeBlock[]) => {
-        localStorage.setItem(`saved_code_blocks_${orgId}`, JSON.stringify(blocks))
+        const currentDomain = storage.getCurrentDomain()
+        if (!currentDomain) {
+            console.error('No current domain found')
+            return
+        }
+
+        storage.setForDomain(currentDomain, 'saved_code_blocks', blocks)
         setSavedBlocks(blocks)
     }
 
@@ -42,8 +51,7 @@ export default function ExecutePage() {
             id: crypto.randomUUID(),
             name,
             code,
-            lastModified: new Date().toISOString(),
-            orgId
+            lastModified: new Date().toISOString()
         }
 
         const updated = [...savedBlocks, newBlock]
@@ -92,7 +100,13 @@ export default function ExecutePage() {
     }
 
     const executeCode = async (codeToExecute: string) => {
-        const refreshToken = localStorage.getItem('sf_refresh_token')
+        const currentDomain = storage.getCurrentDomain()
+        if (!currentDomain) {
+            toast.error('No current domain found')
+            return
+        }
+
+        const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
         if (!refreshToken) {
             toast.error('Not authenticated')
             return
@@ -117,11 +131,9 @@ export default function ExecutePage() {
                 throw new Error(result.error || 'Failed to execute code')
             }
 
-            console.log('resulting log:', result)
-
             // Store the log ID for automatic selection
             if (result.logId) {
-                localStorage.setItem('pending_log_selection', result.logId)
+                storage.setForDomain(currentDomain, 'pending_log_selection', result.logId)
 
                 // Check the execution status
                 if (result.logStatus === 'Success') {

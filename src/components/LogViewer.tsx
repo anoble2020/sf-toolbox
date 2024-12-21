@@ -320,9 +320,8 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
 
         const baseClasses = `
             py-1
-            ${line.type === 'LIMITS' ? 'bg-[#DADADA] hover:bg-[#C0C0C0]' : ''}
-            ${isSelected ? 'bg-blue-100 hover:bg-blue-200' : 'hover:bg-gray-50'}
-            ${line.type !== 'LIMITS' ? 'cursor-pointer' : ''}
+            ${line.type === 'LIMITS' ? 'cursor-pointer bg-gray-200 hover:bg-gray-300 dark:bg-gray-800 dark:hover:bg-gray-700 dark:text-white' : ''}
+            ${isSelected ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
         `
 
         if (!prettyMode || !line.isCollapsible) {
@@ -347,7 +346,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
             >
                 <div className="flex items-center gap-2 px-2">{renderContent(line)}</div>
                 {isExpanded && line.details && (
-                    <div className="pl-8 py-2 bg-gray-50 font-mono text-sm w-full whitespace-pre">{line.details}</div>
+                    <div className="pl-8 py-2 bg-gray-50 dark:bg-gray-800 font-mono text-sm w-full whitespace-pre">{line.details}</div>
                 )}
             </div>
         )
@@ -370,7 +369,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
                 </div>
             )}
 
-            <div className="flex-none bg-white border-b border-gray-200 p-2">
+            <div className="flex-none border-b border-gray-200 dark:border-gray-800 p-2">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Search className="w-4 h-4 text-gray-500" />
@@ -385,13 +384,13 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
                     <div className="flex items-center gap-4">
                         <div className="flex items-center space-x-2">
                             <Switch id="pretty-mode" checked={prettyMode} onCheckedChange={setPrettyMode} />
-                            <Label htmlFor="pretty-mode" className="text-sm text-gray-600">
+                            <Label htmlFor="pretty-mode" className="text-sm text-gray-600 dark:text-white">
                                 Pretty
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
                             <Switch id="debug-mode" checked={debugOnly} onCheckedChange={setDebugOnly} />
-                            <Label htmlFor="debug-mode" className="text-sm text-gray-600">
+                            <Label htmlFor="debug-mode" className="text-sm text-gray-600 dark:text-white">
                                 Debug Only
                             </Label>
                         </div>
@@ -408,7 +407,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
 
             {/* Timeline section */}
             {showTimeline && (
-                <div className="flex-none bg-gray-50 border-b border-gray-200">
+                <div className="flex-none border-b border-gray-200 dark:border-gray-800">
                     {/* <Timeline logContent={content} /> */}
                     <TraceViewer
                         content={content}
@@ -419,7 +418,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
             )}
             {/* Replay section */}
             {showReplay && (
-                <div className="flex-none bg-gray-50 border-b border-gray-200">
+                <div className="flex-none border-b border-gray-200 dark:border-gray-800">
                     <LogReplay content={content} onLineSelect={setSelectedLine} />
                 </div>
             )}

@@ -54,7 +54,7 @@ const TraceEvent = ({ event, xScale, timeStart, labelWidth, maxWidth, onEventCli
 
     return (
         <div className="relative">
-            <div className="flex items-center h-12 group hover:bg-gray-50">
+            <div className="flex items-center h-12 group hover:bg-gray-50 dark:hover:bg-gray-800">
                 {/* Label section */}
                 <div
                     className="flex items-center shrink-0 px-2"
@@ -86,7 +86,7 @@ const TraceEvent = ({ event, xScale, timeStart, labelWidth, maxWidth, onEventCli
                             width: `${barWidth}px`,
                         }}
                     >
-                        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-xs whitespace-nowrap">
+                        <div className="absolute left-2 top-1/2 -translate-y-1/2 text-xs whitespace-nowrap text-gray-800">
                             {(event.duration / 1000).toFixed(3)}s
                         </div>
                     </div>
@@ -170,7 +170,7 @@ export function TraceViewer({ content, onClose, onEventClick }: TraceViewerProps
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-[90vw] h-[90vh] flex flex-col">
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-[90vw] h-[90vh] flex flex-col">
                 <div className="flex justify-between items-center p-4 border-b">
                     <h2 className="text-lg font-semibold">
                         <span className="flex items-center">
@@ -178,7 +178,7 @@ export function TraceViewer({ content, onClose, onEventClick }: TraceViewerProps
                             Execution Timeline ({formatTime(totalDuration)} total)
                         </span>
                     </h2>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                    <button onClick={onClose} className="text-gray-500 dark:text-white hover:text-gray-700">
                         <X className="w-6 h-6" />
                     </button>
                 </div>
