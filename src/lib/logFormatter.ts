@@ -212,9 +212,15 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
             }
         }
     } else if (cleanLine.includes('VALIDATION_RULE')) {
-        const ruleMatch = cleanLine.match(/VALIDATION_RULE\|([^|]+)\|([^|]+)/)
+        const ruleMatch = cleanLine.match(/VALIDATION_RULE\|([^|]+)\|(.+)$/)
         if (ruleMatch) {
             const [_, ruleId, ruleName] = ruleMatch
+            
+            // For multi-line content, clean up any line breaks and extra spaces
+            const cleanRuleName = ruleName
+                .replace(/\n/g, ' ')  // Replace line breaks with spaces
+                .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+                .trim()
 
             // Look ahead for formula and result
             let formula = ''
@@ -235,7 +241,7 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
             return {
                 id: baseId,
                 time,
-                summary: `VALIDATION RULE | ${ruleName} | ${result} | ${formula}`,
+                summary: `${time} | VALIDATION RULE | ${cleanRuleName} | ${result} | ${formula}`,
                 type: 'VALIDATION',
                 isCollapsible: false,
                 originalIndex,

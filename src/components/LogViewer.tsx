@@ -43,77 +43,84 @@ const renderSqlWithBoldKeywords = (text: string) => {
     })
 }
 
-const renderSoqlLine = (content: string) => {
-    // Split content into main parts
-    const [timestamp, ...rest] = content.split(' | ')
-    const mainContent = rest.join(' | ')
+const IconContainer = ({ children, color }: { children: React.ReactNode; color: string }) => (
+    <div 
+        className="flex items-center justify-center w-8 h-8 rounded-full shrink-0" 
+        style={{ backgroundColor: color }}
+    >
+        <div className="w-4 h-4 flex items-center justify-center">
+            {children}
+        </div>
+    </div>
+)
 
-    // Extract aggregations and rows if they exist
+// Helper function to ensure consistent timestamp formatting
+const formatTimestamp = (timestamp: string) => {
+    // Remove any extra spaces and ensure consistent format
+    return timestamp.trim()
+}
+
+const renderSoqlLine = (content: string) => {
+    const [timestamp, ...rest] = content.split(/\s*\|\s*/)
+    const mainContent = rest.join(' | ')
     const statsMatch = mainContent.match(/\| (Aggregations: \d+ \| Rows: \d+)$/)
     const stats = statsMatch ? statsMatch[1] : ''
     const query = statsMatch ? mainContent.replace(statsMatch[0], '') : mainContent
 
     return (
-        <div className="flex items-center gap-2 w-full">
-            {/* Timestamp */}
-            <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
-
-            {/* Search icon with background */}
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#484b6a]">
-                <Search className="w-4 h-4 text-white" />
-            </div>
-
-            {/* Query content */}
+        <div className="flex items-center gap-3 w-full">
+            <span className="text-gray-600 min-w-[60px]">{formatTimestamp(timestamp)}</span>
+            <IconContainer color="#484b6a">
+                <Search className="text-white" />
+            </IconContainer>
             <span className="flex-1">{renderSqlWithBoldKeywords(query)}</span>
-
-            {/* Stats on the right */}
             {stats && <span className="text-gray-600 whitespace-nowrap">{stats}</span>}
         </div>
     )
 }
 
 const renderFlowLine = (content: string) => {
-    const [timestamp, ...rest] = content.split(' | ')
+    const [timestamp, ...rest] = content.split(/\s*\|\s*/)
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#3a49ee]">
-                <Workflow className="w-4 h-4 text-white" />
-            </div>
+        <div className="flex items-center gap-3">
+            <span className="text-gray-600 min-w-[60px]">{formatTimestamp(timestamp)}</span>
+            <IconContainer color="#3a49ee">
+                <Workflow className="text-white" />
+            </IconContainer>
             <span>{rest.join(' | ')}</span>
         </div>
     )
 }
 
 const renderCodeUnitLine = (content: string) => {
-    const [timestamp, ...rest] = content.split(' | ')
+    const [timestamp, ...rest] = content.split(/\s*\|\s*/)
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#94e591]">
-                <Code className="w-4 h-4 text-white" />
-            </div>
+        <div className="flex items-center gap-3">
+            <span className="text-gray-600 min-w-[60px]">{formatTimestamp(timestamp)}</span>
+            <IconContainer color="#94e591">
+                <Code className="text-white" />
+            </IconContainer>
             <span>{rest.join(' | ')}</span>
         </div>
     )
 }
 
 const renderDebugLine = (content: string) => {
-    const [timestamp, ...rest] = content.split(' | ')
+    const [timestamp, ...rest] = content.split(/\s*\|\s*/)
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#f1ad48]">
-                <Bug className="w-4 h-4 text-white" />
-            </div>
+        <div className="flex items-center gap-3">
+            <span className="text-gray-600 min-w-[60px]">{formatTimestamp(timestamp)}</span>
+            <IconContainer color="#f1ad48">
+                <Bug className="text-white" />
+            </IconContainer>
             <span>{rest.join(' | ')}</span>
         </div>
     )
 }
 
 const renderDmlLine = (content: string) => {
-    const [timestamp, ...parts] = content.split(' | ')
-
+    const [timestamp, ...parts] = content.split(/\s*\|\s*/)
+    
     // Check if this line includes row count
     const rowsMatch = parts.join(' | ').match(/Rows: (\d+)$/)
     const rows = rowsMatch ? rowsMatch[1] : null
@@ -122,33 +129,30 @@ const renderDmlLine = (content: string) => {
     const mainContent = rows ? parts.join(' | ').replace(` | Rows: ${rows}`, '') : parts.join(' | ')
 
     return (
-        <div className="flex items-center gap-2 w-full">
-            {/* Timestamp */}
-            <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
-
-            {/* Database icon with background */}
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#ee4de1]">
-                <Database className="w-4 h-4 text-white" />
-            </div>
-
-            {/* Main content */}
+        <div className="flex items-center gap-3 w-full">
+            <span className="text-gray-600 min-w-[60px]">{formatTimestamp(timestamp)}</span>
+            <IconContainer color="#ee4de1">
+                <Database className="text-white" />
+            </IconContainer>
             <span className="flex-1">{mainContent}</span>
-
-            {/* Rows count on the right if it exists */}
             {rows && <span className="text-gray-600 whitespace-nowrap">Rows: {rows}</span>}
         </div>
     )
 }
 
 const renderValidationLine = (content: string) => {
-    const [timestamp, ...rest] = content.split(' | ')
+    const [timestamp, ...rest] = content.split(/\s*\|\s*/)
     return (
-        <div className="flex items-center gap-2">
-            <span className="text-gray-600 min-w-[60px]">{timestamp}</span>
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-[#9333ea]">
-                <Scale className="w-4 h-4 text-white" />
+        <div className="flex gap-3">
+            <div className="shrink-0">
+                <span className="text-gray-600 min-w-[60px] block">{formatTimestamp(timestamp)}</span>
             </div>
-            <span>{rest.join(' | ')}</span>
+            <div className="flex-1 flex items-start gap-3">
+                <IconContainer color="#9333ea">
+                    <Scale className="text-white" />
+                </IconContainer>
+                <span className="flex-1">{rest.join(' | ')}</span>
+            </div>
         </div>
     )
 }
@@ -166,7 +170,7 @@ const renderContent = (line: CollapsibleLine) => {
         case 'DML':
             return renderDmlLine(line.summary)
         case 'VALIDATION':
-            return renderValidationLine(`${line.time} | ${line.summary}`)
+            return renderValidationLine(line.summary)
         default:
             return <span>{line.summary}</span>
     }
