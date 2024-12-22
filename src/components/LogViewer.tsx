@@ -140,19 +140,34 @@ const renderDmlLine = (content: string) => {
     )
 }
 
-const renderValidationLine = (content: string) => {
+const renderValidationLine = (content: string, details?: string) => {
     const [timestamp, ...rest] = content.split(/\s*\|\s*/)
     return (
-        <div className="flex gap-3">
-            <div className="shrink-0">
-                <span className="text-gray-600 min-w-[60px] block">{formatTimestamp(timestamp)}</span>
+        <div className="flex flex-col">
+            {/* Header row */}
+            <div className="flex gap-3">
+                <div className="shrink-0">
+                    <span className="text-gray-600 min-w-[60px] block">{formatTimestamp(timestamp)}</span>
+                </div>
+                <div className="flex-1 flex items-start gap-3">
+                    <IconContainer color="#9333ea">
+                        <Scale className="text-white" />
+                    </IconContainer>
+                    <span>{rest.join(' | ')}</span>
+                </div>
             </div>
-            <div className="flex-1 flex items-start gap-3">
-                <IconContainer color="#9333ea">
-                    <Scale className="text-white" />
-                </IconContainer>
-                <span className="flex-1">{rest.join(' | ')}</span>
-            </div>
+            {/* Formula row - aligned with content above */}
+            {details && (
+                <div className="flex gap-3">
+                    <div className="shrink-0 min-w-[60px]" /> {/* Spacer for timestamp */}
+                    <div className="flex-1 flex gap-3">
+                        <div className="w-8" /> {/* Spacer for icon */}
+                        <div className="flex-1 font-mono text-sm whitespace-pre-wrap">
+                            {details}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
@@ -170,7 +185,7 @@ const renderContent = (line: CollapsibleLine) => {
         case 'DML':
             return renderDmlLine(line.summary)
         case 'VALIDATION':
-            return renderValidationLine(line.summary)
+            return renderValidationLine(line.summary, line.details)
         default:
             return <span>{line.summary}</span>
     }
