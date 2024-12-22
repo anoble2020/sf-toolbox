@@ -4,6 +4,7 @@ interface ApiLimitsState {
     limits: {
         used: number
         total: number
+        lastUpdated?: string
     }
     updateLimits: (used: number, total: number) => void
 }
@@ -16,7 +17,7 @@ export const useApiLimits = create<ApiLimitsState>((set) => ({
     updateLimits: (used: number, total: number) => {
         console.log('Store updateLimits called:', { used, total })
         set((state) => {
-            const newState = { ...state, limits: { used, total } }
+            const newState = { ...state, limits: { used, total, lastUpdated: new Date().toISOString() } }
             console.log('Setting new state:', newState)
             return newState
         }, true )
@@ -35,6 +36,7 @@ export const apiLimitsActions = {
             limits: {
                 used: Number(used),
                 total: Number(total),
+                lastUpdated: new Date().toISOString(),
             },
         })
     },

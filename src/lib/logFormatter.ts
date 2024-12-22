@@ -212,30 +212,39 @@ export function formatLogLine(line: string, originalIndex: number, allLines: str
             }
         }
     } else if (cleanLine.includes('VALIDATION_RULE')) {
-        const ruleMatch = cleanLine.match(/VALIDATION_RULE\|([^|]+)\|([^|]+)/)
+        const ruleMatch = cleanLine.match(/VALIDATION_RULE\|([^|]+)\|(.+)$/)
         if (ruleMatch) {
             const [_, ruleId, ruleName] = ruleMatch
-
+            
             // Look ahead for formula and result
-            let formula = ''
+            let formula = []
             let result = 'UNKNOWN'
             let i = 1
-            while (i < 3 && originalIndex + i < allLines.length) {
+            let foundFormula = false
+            
+            while (i < 20 && originalIndex + i < allLines.length) { // Increased max lines to check
                 const nextLine = allLines[originalIndex + i]
+                
                 if (nextLine.includes('VALIDATION_FORMULA')) {
-                    formula = nextLine.split('|')[2]
-                } else if (nextLine.includes('VALIDATION_PASS')) {
-                    result = 'PASS'
-                } else if (nextLine.includes('VALIDATION_FAIL')) {
-                    result = 'FAIL'
+                    foundFormula = true
+                    formula.push(nextLine.split('|')[2])
+                } else if (foundFormula && (nextLine.includes('VALIDATION_PASS') || nextLine.includes('VALIDATION_FAIL'))) {
+                    result = nextLine.includes('VALIDATION_PASS') ? 'PASS' : 'FAIL'
+                    break
+                } else if (foundFormula && !nextLine.includes('CODE_UNIT')) {
+                    // Continue collecting formula lines until we hit a result or code unit
+                    formula.push(nextLine)
                 }
                 i++
             }
 
+            const fullFormula = formula.join('\n')
+
             return {
                 id: baseId,
                 time,
-                summary: `VALIDATION RULE | ${ruleName} | ${result} | ${formula}`,
+                summary: `${time} | VALIDATION RULE | ${ruleName} | ${result}`,
+                details: fullFormula,
                 type: 'VALIDATION',
                 isCollapsible: false,
                 originalIndex,
@@ -301,6 +310,7 @@ export function formatLogs(lines: string[]): FormattedLine[] {
     let currentNamespace = ''
     let namespaceLimits: NamespaceLimits = {}
     let currentTime = ''
+    let skipUntilIndex = -1  // Add this to track which lines to skip
 
     // First pass: create array with original indices
     const validLines = lines
@@ -334,7 +344,27 @@ export function formatLogs(lines: string[]): FormattedLine[] {
         })
 
     for (let i = 0; i < validLines.length; i++) {
+        // Skip lines that are part of a validation rule we've already processed
+        if (validLines[i].originalIndex <= skipUntilIndex) {
+            continue
+        }
+
         const { content, originalIndex } = validLines[i]
+
+        // If this is a validation rule, find where it ends
+        if (content.includes('VALIDATION_RULE')) {
+            let j = i + 1
+            while (j < validLines.length) {
+                const nextLine = validLines[j].content
+                if (nextLine.includes('VALIDATION_PASS') || 
+                    nextLine.includes('VALIDATION_FAIL') ||
+                    nextLine.includes('CODE_UNIT_FINISHED')) {
+                    skipUntilIndex = validLines[j].originalIndex
+                    break
+                }
+                j++
+            }
+        }
 
         // Handle regular lines when not collecting limits
         if (!collectingLimits && 
