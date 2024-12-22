@@ -21,10 +21,13 @@ export function ApiLimits() {
 
     const usagePercent = (limits.used / limits.total) * 100
     const isHighUsage = usagePercent > 80
+    const formattedTime = limits.lastUpdated ? new Date(limits.lastUpdated).toLocaleTimeString() : ''
 
     return (
         <div className="flex flex-col items-center">
-            <span className="text-xs text-gray-500 dark:text-white mb-1">API Calls</span>
+            <span className="text-xs text-gray-500 dark:text-white mb-1">
+                API Calls {formattedTime && <span className="opacity-60">• {formattedTime}</span>}
+            </span>
             <div className="flex items-center gap-2">
                 <CircleDashed className="w-4 h-4 text-gray-500" />
                 <span
