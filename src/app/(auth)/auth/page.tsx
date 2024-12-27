@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import { Github } from 'lucide-react'
 
 function AuthContent() {
     const searchParams = useSearchParams()
@@ -136,6 +137,18 @@ function AuthContent() {
                     )}
 
                 </div>
+            </div>
+            
+            <div className="absolute bottom-4 left-4">
+                <a
+                    href="https://github.com/anoble2020/sf-toolbox"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm"
+                >
+                    <Github className="w-4 h-4" />
+                    <span className="text-xs">View project on GitHub</span>
+                </a>
             </div>
         </div>
     )
