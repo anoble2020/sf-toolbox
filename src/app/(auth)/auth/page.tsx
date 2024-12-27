@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import { Github } from 'lucide-react'
 
 function AuthContent() {
     const searchParams = useSearchParams()
@@ -47,87 +48,107 @@ function AuthContent() {
     }
 
     return (
-        <div className="container bg-background dark:bg-background relative min-h-screen flex-col items-center justify-center grid lg:max-w-none lg:grid-cols-1 lg:px-0">
-            <div className="flex flex-col items-center">
-                <Image src="/icon_128_purp.png" alt="SF Toolkit Logo" width={128} height={128} priority />
-                <h1 className="text-2xl font-semibold mb-8">
-                    {isConnecting ? 'Connect New Organization' : 'sf toolbox'}
-                </h1>
+        <div className="container relative min-h-screen flex items-center justify-center lg:max-w-none lg:px-0 bg-gradient-to-b from-white to-slate-200 dark:from-slate-900 dark:to-black">
+            <div className="w-full max-w-xl p-8 rounded-2xl bg-gradient-to-b from-white to-slate-150 text-slate-900 dark:from-slate-700/95 dark:to-slate-900/95 backdrop-blur-sm shadow-xl">
+                <div className="flex flex-col items-center text-slate-900 dark:text-white">
+                    <Image src="/icon_128_purp.png" alt="SF Toolkit Logo" width={128} height={128} priority />
+                    <h1 className="text-2xl font-semibold mb-2">
+                        {isConnecting ? 'Connect New Organization' : 'sf toolbox'}
+                    </h1>
+                    <div className="flex flex-col items-center mb-12 font-mono text-sm whitespace-nowrap">
+                        the open-source Salesforce developer console replacement
+                    </div>
+                    <div className="flex flex-col items-center mb-6 text-sm">
+                        Connect your Salesforce org below to get started:
+                    </div>
 
-                <div className="flex gap-4">
-                    <Button 
-                        size="lg" 
-                        onClick={() => handleLogin('sandbox')} 
-                        className="font-medium bg-slate-600"
-                        disabled={environment === 'production'}
-                    >
-                        <Image
-                            src="/sf_cloud_logo.png"
-                            alt="SF Logo"
-                            width={30}
-                            height={30}
-                            priority
-                            style={{
-                                paddingTop: 10,
-                                paddingBottom: 10,
-                            }}
-                        />
-                        <div className="dark:text-white">
-                            {environment === 'sandbox' ? 'Connect Sandbox' : 'Sandbox'}
-                        </div>
-                    </Button>
-                    <Button 
-                        size="lg" 
-                        onClick={() => handleLogin('production')} 
-                        className="font-medium bg-slate-600"
-                        disabled={environment === 'sandbox'}
-                    >
-                        <Image
-                            src="/sf_cloud_logo.png"
-                            alt="SF Logo"
-                            width={30}
-                            height={30}
-                            priority
-                            style={{
-                                paddingTop: 10,
-                                paddingBottom: 10,
-                            }}
-                        />
-                        <div className="dark:text-white">
-                            {environment === 'production' ? 'Connect Production' : 'Production'}
-                        </div>
-                    </Button>
-                </div>
+                    <div className="flex gap-4">
+                        <Button 
+                            size="lg" 
+                            onClick={() => handleLogin('sandbox')} 
+                            className="font-medium text-slate-900 dark:text-white bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-700"
+                            disabled={environment === 'production'}
+                        >
+                            <Image
+                                src="/sf_cloud_logo.png"
+                                alt="SF Logo"
+                                width={30}
+                                height={30}
+                                priority
+                                style={{
+                                    paddingTop: 10,
+                                    paddingBottom: 10,
+                                }}
+                            />
+                            <div className="dark:text-white">
+                                {environment === 'sandbox' ? 'Connect Sandbox' : 'Sandbox'}
+                            </div>
+                        </Button>
+                        <Button 
+                            size="lg" 
+                            onClick={() => handleLogin('production')} 
+                            className="font-medium text-slate-900 dark:text-white bg-slate-200 hover:bg-slate-300 dark:bg-slate-600 dark:hover:bg-slate-700"
+                            disabled={environment === 'sandbox'}
+                        >
+                            <Image
+                                src="/sf_cloud_logo.png"
+                                alt="SF Logo"
+                                width={30}
+                                height={30}
+                                priority
+                                style={{
+                                    paddingTop: 10,
+                                    paddingBottom: 10,
+                                }}
+                            />
+                            <div className="dark:text-white">
+                                {environment === 'production' ? 'Connect Production' : 'Production'}
+                            </div>
+                        </Button>
+                    </div>
 
-                {showCustomDomain ? (
-                    <div className="mt-4 w-full max-w-sm">
-                        <Input
-                            type="text"
-                            placeholder="my-domain.my.salesforce.com"
-                            value={customDomain}
-                            onChange={(e) => setCustomDomain(e.target.value)}
-                            className="mb-2"
-                        />
+                    {showCustomDomain ? (
+                        <div className="mt-4 w-full max-w-sm">
+                            <Input
+                                type="text"
+                                placeholder="my-domain.my.salesforce.com"
+                                value={customDomain}
+                                onChange={(e) => setCustomDomain(e.target.value)}
+                                className="mb-2"
+                            />
+                            <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setShowCustomDomain(false)}
+                                className="w-full"
+                            >
+                                Use Standard Login
+                            </Button>
+                        </div>
+                    ) : (
                         <Button 
                             variant="outline" 
                             size="sm"
-                            onClick={() => setShowCustomDomain(false)}
-                            className="w-full"
+                            onClick={() => setShowCustomDomain(true)}
+                            className="mt-4"
                         >
-                            Use Standard Login
+                            Use Custom Domain
                         </Button>
-                    </div>
-                ) : (
-                    <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setShowCustomDomain(true)}
-                        className="mt-4"
-                    >
-                        Use Custom Domain
-                    </Button>
-                )}
+                    )}
 
+                </div>
+            </div>
+            
+            <div className="absolute bottom-4 left-4">
+                <a
+                    href="https://github.com/anoble2020/sf-toolbox"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 text-sm"
+                >
+                    <Github className="w-4 h-4" />
+                    <span className="text-xs">View project on GitHub</span>
+                </a>
             </div>
         </div>
     )
