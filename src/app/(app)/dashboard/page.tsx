@@ -9,7 +9,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { storage } from '@/lib/storage'
 import { useSearchParams } from 'next/navigation'
 
-const SalesforceDashboard = () => {
+const DashboardContent = () => {
     const [timeRange] = useState('24h')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -374,14 +374,14 @@ const SalesforceDashboard = () => {
     )
 }
 
-export default function Dashboard() {
+export default function SalesforceDashboard() {
     return (
         <Suspense fallback={
             <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
                 <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
             </div>
         }>
-            <SalesforceDashboard />
+            <DashboardContent />
         </Suspense>
     )
 }
