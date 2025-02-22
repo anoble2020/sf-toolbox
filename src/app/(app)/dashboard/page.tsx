@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Code, Users, Bell, Database, Shield, Radio, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
@@ -374,4 +374,14 @@ const SalesforceDashboard = () => {
     )
 }
 
-export default SalesforceDashboard
+export default function Dashboard() {
+    return (
+        <Suspense fallback={
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+            </div>
+        }>
+            <SalesforceDashboard />
+        </Suspense>
+    )
+}
