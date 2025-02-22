@@ -1,18 +1,18 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Button } from '@/components/ui/button'
 import { toast } from 'sonner'
 import { CodeEditor } from '@/components/CodeEditor'
 import { SaveCodeBlockModal } from '@/components/SaveCodeBlockModal'
 import { refreshAccessToken } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
-import { Save, X } from 'lucide-react'
+import { Save, X, Loader2 } from 'lucide-react'
 import { SavedBlocksDrawer } from '@/components/SavedBlocksDrawer'
 import { SavedCodeBlock } from '@/lib/types'
 import { storage } from '@/lib/storage'
 
-export default function ExecutePage() {
+function ExecuteContent() {
     const [code, setCode] = useState('')
     const [isExecuting, setIsExecuting] = useState(false)
     const [isSaveModalOpen, setSaveModalOpen] = useState(false)
@@ -228,5 +228,17 @@ export default function ExecutePage() {
                 onDelete={handleDelete}
             />
         </div>
+    )
+}
+
+export default function ExecutePage() {
+    return (
+        <Suspense fallback={
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+            </div>
+        }>
+            <ExecuteContent />
+        </Suspense>
     )
 }
