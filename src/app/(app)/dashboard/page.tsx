@@ -15,6 +15,7 @@ const SalesforceDashboard = () => {
     const [orgData, setOrgData] = useState<any>(null)
     const [userTimezone, setUserTimezone] = useState<string | null>(null)
     useEffect(() => {
+        console.log('Dashboard mounted');
         const currentDomain = storage.getCurrentDomain()
         const userTimezone = storage.getFromDomain(currentDomain || '', 'sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
         setUserTimezone(userTimezone)
@@ -53,6 +54,22 @@ const SalesforceDashboard = () => {
         };
 
         fetchOrgData();
+    }, []);
+
+    useEffect(() => {
+        console.log('Dashboard mounted');
+        const currentDomain = storage.getCurrentDomain();
+        console.log('Current domain from storage:', currentDomain);
+        
+        // Log all stored data
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}');
+        console.log('All stored SF data:', allData);
+        
+        // Check refresh token for current domain
+        if (currentDomain) {
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token');
+            console.log('Has refresh token for current domain:', !!refreshToken);
+        }
     }, []);
 
     if(loading){
