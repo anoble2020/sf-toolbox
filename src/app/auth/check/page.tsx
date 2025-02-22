@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { storage } from '@/lib/storage'
 import { Loader2 } from 'lucide-react'
 
-export default function CheckAuth() {
+function CheckAuthContent() {
     const searchParams = useSearchParams()
     
     useEffect(() => {
@@ -48,5 +48,18 @@ export default function CheckAuth() {
             <Loader2 className="h-4 w-4 animate-spin mr-2" />
             Connecting...
         </div>
+    )
+}
+
+export default function CheckAuth() {
+    return (
+        <Suspense fallback={
+            <div className="flex justify-center items-center h-screen">
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Loading...
+            </div>
+        }>
+            <CheckAuthContent />
+        </Suspense>
     )
 }
