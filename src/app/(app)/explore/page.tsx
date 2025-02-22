@@ -178,7 +178,11 @@ function ExploreContent() {
     const handleClose = () => {
         setFile(null)
         setError(null)
-        router.replace('/explore')
+        // Preserve org parameter when closing
+        const org = searchParams.get('org')
+        const params = new URLSearchParams()
+        if (org) params.set('org', org)
+        router.replace(`/explore${params.toString() ? `?${params.toString()}` : ''}`)
     }
 
     console.log('ExplorePage render:', {
@@ -211,7 +215,11 @@ function ExploreContent() {
                         open={isModalOpen}
                         onOpenChange={setIsModalOpen}
                         onFileSelect={(id, type) => {
-                            router.push(`/explore?id=${id}&type=${type}`)
+                            // Preserve org parameter
+                            const org = searchParams.get('org')
+                            const params = new URLSearchParams({ id, type })
+                            if (org) params.set('org', org)
+                            router.push(`/explore?${params.toString()}`)
                             setIsModalOpen(false)
                         }}
                         files={files}
@@ -245,7 +253,11 @@ function ExploreContent() {
                         open={isModalOpen}
                         onOpenChange={setIsModalOpen}
                         onFileSelect={(id, type) => {
-                            router.push(`/explore?id=${id}&type=${type}`)
+                            // Preserve org parameter
+                            const org = searchParams.get('org')
+                            const params = new URLSearchParams({ id, type })
+                            if (org) params.set('org', org)
+                            router.push(`/explore?${params.toString()}`)
                             setIsModalOpen(false)
                         }}
                         files={files}
@@ -255,7 +267,11 @@ function ExploreContent() {
                     variant="ghost"
                     size="icon"
                     onClick={() => {
-                        router.push('/explore')
+                        // Preserve org parameter when closing
+                        const org = searchParams.get('org')
+                        const params = new URLSearchParams()
+                        if (org) params.set('org', org)
+                        router.push(`/explore${params.toString() ? `?${params.toString()}` : ''}`)
                         setFile(null)
                     }}
                 >

@@ -2,7 +2,7 @@
 
 import { Scroll, Flag, FlaskConical, Search, Play, Github, Coffee, Telescope, Home } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import UserNav from '@/components/UserNav'
 import { ApiLimits } from '@/components/ApiLimits'
@@ -22,12 +22,46 @@ interface UserInfo {
 
 export default function Layout({ children }: LayoutProps) {
     const pathname = usePathname()
+    const searchParams = useSearchParams()
+    const router = useRouter()
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+    const [mounted, setMounted] = useState(false)
+    const [currentDomain, setCurrentDomain] = useState<string | null>(null)
+
+    // Helper function to build URLs with org parameter
+    const getHref = (path: string) => {
+        if (!mounted) return path // Return plain path during SSR
+        return currentDomain && !path.startsWith('/auth')
+            ? `${path}?org=${encodeURIComponent(currentDomain)}`
+            : path
+    }
 
     useEffect(() => {
+        setMounted(true)
+        const domain = storage.getCurrentDomain()
+        setCurrentDomain(domain)
+    }, [])
+
+    useEffect(() => {
+        // Skip for auth-related pages
+        if (pathname.startsWith('/auth')) {
+            return
+        }
+
         const currentDomain = storage.getCurrentDomain()
         if (currentDomain) {
             try {
+                // Always ensure org parameter is in URL
+                const currentParams = new URLSearchParams(searchParams.toString())
+                const orgFromUrl = currentParams.get('org')
+
+                if (!orgFromUrl && !pathname.startsWith('/auth')) {
+                    // Replace the current URL with org parameter
+                    const newUrl = `${pathname}?org=${encodeURIComponent(currentDomain)}`
+                    router.replace(newUrl)
+                }
+
+                // Set user info
                 const domainUserInfo = storage.getFromDomain(currentDomain, 'user_info')
                 if (domainUserInfo) {
                     setUserInfo({
@@ -40,7 +74,21 @@ export default function Layout({ children }: LayoutProps) {
                 console.error('Failed to get user info:', e)
             }
         }
-    }, [])
+    }, [pathname, searchParams, router])
+
+    // Force org parameter on initial load and navigation
+    useEffect(() => {
+        if (!pathname.startsWith('/auth')) {
+            const currentDomain = storage.getCurrentDomain()
+            const currentParams = new URLSearchParams(searchParams.toString())
+            const orgFromUrl = currentParams.get('org')
+
+            if (currentDomain && !orgFromUrl) {
+                const newUrl = `${pathname}?org=${encodeURIComponent(currentDomain)}`
+                router.replace(newUrl)
+            }
+        }
+    }, [pathname, searchParams, router])
 
     const menuItems = [
         { name: 'Dashboard', path: '/dashboard', icon: Home },
@@ -72,7 +120,7 @@ export default function Layout({ children }: LayoutProps) {
                     {menuItems.map((item) => (
                         <Link
                             key={item.path}
-                            href={item.path}
+                            href={getHref(item.path)}
                             className={cn(
                                 'flex items-center px-3 py-1.5 rounded-md mb-1 text-sm font-weight-[400]',
                                 pathname === item.path

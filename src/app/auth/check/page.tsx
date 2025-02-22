@@ -9,36 +9,35 @@ export default function CheckAuth() {
     
     useEffect(() => {
         const domain = searchParams.get('domain')
-        console.log('Checking auth for domain:', domain)
+        console.log('Check page - Initial domain:', domain)
         
         if (!domain) {
             console.error('No domain provided');
             return;
         }
         
-        // Always perform the check
         const sfData = JSON.parse(localStorage.getItem('sf_data') || '{}')
-        console.log('SF Data:', sfData)
+        console.log('Check page - SF Data:', sfData)
         
         // Check for refresh token in the correct domain format
         const mySalesforceVersion = domain.replace('.lightning.force.com', '.my.salesforce.com')
         const lightningVersion = domain.replace('.my.salesforce.com', '.lightning.force.com')
         
         const hasAuth = !!(sfData[mySalesforceVersion]?.refresh_token || sfData[lightningVersion]?.refresh_token)
-        console.log('Has auth:', hasAuth)
+        console.log('Check page - Has auth:', hasAuth, 'for domain:', mySalesforceVersion)
         
         if (hasAuth) {
-            // Set as current domain (use the .my.salesforce.com version)
-            storage.setCurrentDomain(mySalesforceVersion)
-            console.log('Set current domain to:', mySalesforceVersion)
-            // Redirect to dashboard
-            window.location.replace('/dashboard')
+            // Explicitly construct dashboard URL with org parameter
+            const dashboardUrl = new URL('/dashboard', window.location.origin)
+            dashboardUrl.searchParams.set('org', mySalesforceVersion)
+            console.log('Check page - Redirecting to:', dashboardUrl.toString())
+            window.location.replace(dashboardUrl.toString())
         } else {
-            // Redirect to auth
             const authUrl = new URL('/auth', window.location.origin)
             authUrl.searchParams.set('connect', 'true')
             authUrl.searchParams.set('domain', domain)
             authUrl.searchParams.set('environment', domain.includes('sandbox') ? 'sandbox' : 'production')
+            console.log('Check page - Redirecting to auth:', authUrl.toString())
             window.location.replace(authUrl.toString())
         }
     }, [searchParams])

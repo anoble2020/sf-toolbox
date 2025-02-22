@@ -7,6 +7,7 @@ import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tool
 import { refreshAccessToken } from '@/lib/auth'
 import { formatInTimeZone } from 'date-fns-tz'
 import { storage } from '@/lib/storage'
+import { useSearchParams } from 'next/navigation'
 
 const SalesforceDashboard = () => {
     const [timeRange] = useState('24h')
@@ -14,6 +15,8 @@ const SalesforceDashboard = () => {
     const [error, setError] = useState<string | null>(null)
     const [orgData, setOrgData] = useState<any>(null)
     const [userTimezone, setUserTimezone] = useState<string | null>(null)
+    const searchParams = useSearchParams()
+
     useEffect(() => {
         console.log('Dashboard mounted');
         const currentDomain = storage.getCurrentDomain()
@@ -24,11 +27,24 @@ const SalesforceDashboard = () => {
     useEffect(() => {
         const fetchOrgData = async () => {
             try {
-                const currentDomain = storage.getCurrentDomain();
-                if (!currentDomain) throw new Error('No current domain found');
+                // Log URL parameters
+                console.log('Dashboard - URL params:', 
+                          Object.fromEntries(searchParams.entries()))
+                
+                // Get current domain and log it
+                const currentDomain = storage.getCurrentDomain()
+                console.log('Dashboard - Current domain:', currentDomain)
+                
+                if (!currentDomain) {
+                    throw new Error('No current domain found')
+                }
 
-                const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token');
-                if (!refreshToken) throw new Error('No refresh token found');
+                const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
+                console.log('Dashboard - Has refresh token:', !!refreshToken)
+                
+                if (!refreshToken) {
+                    throw new Error('No refresh token found')
+                }
 
                 const { access_token, instance_url } = await refreshAccessToken(refreshToken);
 
@@ -54,7 +70,7 @@ const SalesforceDashboard = () => {
         };
 
         fetchOrgData();
-    }, []);
+    }, [searchParams]);
 
     useEffect(() => {
         console.log('Dashboard mounted');
