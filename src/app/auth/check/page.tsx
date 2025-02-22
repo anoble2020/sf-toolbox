@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { storage } from '@/lib/storage'
+import { Loader2 } from 'lucide-react'
 
 export default function CheckAuth() {
     const searchParams = useSearchParams()
@@ -42,5 +43,10 @@ export default function CheckAuth() {
         }
     }, [searchParams])
 
-    return <div>Checking authentication...</div>
-} 
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            Connecting...
+        </div>
+    )
+}
