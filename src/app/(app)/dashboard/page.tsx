@@ -9,7 +9,7 @@ import { formatInTimeZone } from 'date-fns-tz'
 import { storage } from '@/lib/storage'
 import { useSearchParams } from 'next/navigation'
 
-const DashboardContent = () => {
+function DashboardContent() {
     const [timeRange] = useState('24h')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
