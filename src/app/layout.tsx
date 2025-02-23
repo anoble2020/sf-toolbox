@@ -1,9 +1,11 @@
+import { Suspense } from 'react'
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/providers/ThemeProvider'
+import { Loader2 } from 'lucide-react'
 
 export const metadata: Metadata = {
     title: 'sf toolbox',
@@ -36,8 +38,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     enableSystem
                     disableTransitionOnChange
                 >
-                    {children}
-                    <Toaster />
+                    <Suspense fallback={
+                        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                        </div>
+                    }>
+                        {children}
+                        <Toaster />
+                    </Suspense>
                 </ThemeProvider>
             </body>
         </html>
