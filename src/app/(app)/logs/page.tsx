@@ -6,6 +6,7 @@ import { LogViewer } from "@/components/LogViewer"
 import { queryLogs, getLogBody } from "@/lib/salesforce"
 import { Loader2, MousePointerClick } from "lucide-react"
 import { storage } from "@/lib/storage"
+import { toast } from "sonner"
 
 interface Log {
   id: string
@@ -20,14 +21,21 @@ interface Log {
   durationMilliseconds?: number
 }
 
+interface LogTab {
+  id: string
+  content: string
+  time: string
+  duration: string
+}
+
 export default function LogsPage() {
   const [logs, setLogs] = useState<Log[]>([])
-  const [selectedLog, setSelectedLog] = useState<Log | null>(null)
+  const [selectedLogs, setSelectedLogs] = useState<LogTab[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [userInfo, setUserInfo] = useState<any>(null)
   const [currentUserOnly, setCurrentUserOnly] = useState(true)
-  const [isLoadingLog, setIsLoadingLog] = useState(false);
+  const [isLoadingLog, setIsLoadingLog] = useState(false)
 
   const formatDuration = (ms?: number): string => {
     if (!ms) return 'N/A'
@@ -118,30 +126,35 @@ export default function LogsPage() {
     }
   }
 
-  const handleSelectLog = useCallback(async (log: Log) => {
+  const handleSelectLog = async (log: Log) => {
+    // Check if log is already selected
+    if (selectedLogs.some(selected => selected.id === log.id)) {
+      return
+    }
+
+    setIsLoadingLog(true)
     try {
-      console.log('Selecting log:', log)
-      setIsLoadingLog(true);
-      if (log.content) {
-        setSelectedLog(log)
-        return
+      const content = await getLogBody(log.id)
+      
+      const newLog: LogTab = {
+        id: log.id,
+        content,
+        time: log.time,
+        duration: log.duration
       }
 
-      const content = await getLogBody(log.id)
-      const updatedLog = { ...log, content }
-      
-      setLogs(currentLogs => 
-        currentLogs.map(l => l.id === log.id ? updatedLog : l)
-      )
-      
-      setSelectedLog(updatedLog)
+      setSelectedLogs(prev => [...prev, newLog])
     } catch (error) {
-      console.error('Failed to fetch log content:', error)
-      setError(error instanceof Error ? error.message : 'Failed to fetch log content')
+      console.error('Error fetching log content:', error)
+      toast.error('Failed to fetch log content')
     } finally {
-      setIsLoadingLog(false);
+      setIsLoadingLog(false)
     }
-  }, [])
+  }
+
+  const handleCloseLog = (logId: string) => {
+    setSelectedLogs(prev => prev.filter(log => log.id !== logId))
+  }
 
   useEffect(() => {
     const currentDomain = storage.getCurrentDomain() as string
@@ -203,17 +216,11 @@ export default function LogsPage() {
 
   return (
     <div className="relative h-full">
-      {selectedLog?.content ? (
-        <LogViewer 
-          content={selectedLog.content} 
-          isLoading={isLoadingLog} 
-        />
-      ) : (
-        <div className="flex flex-col h-[350px] justify-center items-center">
-          <MousePointerClick className="w-4 h-4 text-gray-500 dark:text-white animate-pulse" />
-        <span className="text-sm text-gray-500 dark:text-white">select a log to view</span>
-      </div>
-    )}
+      <LogViewer 
+        logs={selectedLogs}
+        isLoading={isLoadingLog}
+        onCloseLog={handleCloseLog}
+      />
       <LogsTable 
         logs={filteredLogs}
         isLoadingLog={isLoadingLog} 

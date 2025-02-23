@@ -6,14 +6,13 @@ import { Search, LineChart, Bug, Code, Workflow, Database, MousePointerClick, Sc
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { TraceViewer } from '@/components/TraceViewer'
 import { LogReplay } from '@/components/LogReplay'
 import { formatLogs } from '@/lib/logFormatter'
-
-interface LogViewerProps {
-    content: string
-    isLoading?: boolean
-}
+import { LogViewerProps, TabState } from '@/lib/types'
+import { X } from 'lucide-react'
+import { formatLogTime } from '@/lib/utils'
 
 interface CollapsibleLine {
     id: string
@@ -191,116 +190,140 @@ const renderContent = (line: CollapsibleLine) => {
     }
 }
 
-export function LogViewer({ content, isLoading }: LogViewerProps) {
-    const [searchQuery, setSearchQuery] = useState('')
-    const [filteredLines, setFilteredLines] = useState<CollapsibleLine[]>([])
-    const [showTimeline, setShowTimeline] = useState(false)
-    const [debugOnly, setDebugOnly] = useState(false)
-    const [showReplay, setShowReplay] = useState(false)
-    const [selectedLine, setSelectedLine] = useState<number | null>(null)
-    const [showAllLogs, setShowAllLogs] = useState(false)
-    const [prettyMode, setPrettyMode] = useState(false)
-    const [expandedLines, setExpandedLines] = useState<Set<string>>(new Set())
-    const [selectedLineContent, setSelectedLineContent] = useState<{
-        id: string
-        pretty: string | null
-        raw: string | null
-    }>({ id: '', pretty: null, raw: null })
-    const selectedLineRef = useRef<HTMLDivElement>(null)
-    const [originalLineIndices, setOriginalLineIndices] = useState<Map<string, number>>(new Map())
-    const logContentRef = useRef<HTMLDivElement>(null)
-
+export function LogViewer({ logs = [], isLoading, onCloseLog }: LogViewerProps) {
+    const [activeTab, setActiveTab] = useState<string>('')
+    
+    // Store state for each tab in a Record
+    const [tabStates, setTabStates] = useState<Record<string, TabState>>({})
+    const [filteredLines, setFilteredLines] = useState<Record<string, CollapsibleLine[]>>({})
+    
+    // Initialize tab state when a new tab is added
     useEffect(() => {
-        if (selectedLineContent && selectedLineRef.current) {
-            selectedLineRef.current.scrollIntoView({
-                behavior: 'smooth',
-                block: 'center',
-            })
-        }
-    }, [selectedLineContent, filteredLines])
-
-    // When content changes, create a mapping of line content to original indices
-    useEffect(() => {
-        if (!content) return
-        const newMap = new Map()
-        content.split('\n').forEach((line, index) => {
-            newMap.set(line, index)
-        })
-        setOriginalLineIndices(newMap)
-    }, [content])
-
-    useEffect(() => {
-        if (!content) {
-            setFilteredLines([])
-            return
-        }
-
-        const allLines = content.split('\n')
-
-        // Create a mapping of line content to original indices
-        const lineToIndexMap = new Map<string, number>()
-        allLines.forEach((line, index) => {
-            lineToIndexMap.set(line, index)
-        })
-
-        let processedLines = allLines.map((line, index) => ({
-            line,
-            originalIndex: index,
-        }))
-
-        if (debugOnly) {
-            processedLines = processedLines.filter(({ line }) => line.includes('USER_DEBUG'))
-        }
-
-        if (searchQuery) {
-            processedLines = processedLines.filter(({ line }) => line.toLowerCase().includes(searchQuery.toLowerCase()))
-        }
-
-        if (prettyMode) {
-            // Pass the original lines array to formatLogs, not just the filtered lines
-            const formattedLines = formatLogs(allLines)
-            // Then filter the formatted lines based on our criteria
-            let filteredFormatted = formattedLines
-            if (debugOnly) {
-                filteredFormatted = formattedLines.filter((line) => line.summary.includes('DEBUG'))
+        logs.forEach(log => {
+            if (!tabStates[log.id]) {
+                setTabStates(prev => ({
+                    ...prev,
+                    [log.id]: {
+                        prettyMode: false,
+                        debugOnly: false,
+                        searchQuery: '',
+                        showTimeline: false,
+                        showReplay: false,
+                        selectedLine: null,
+                        expandedLines: new Set(),
+                        selectedLineContent: {
+                            id: '',
+                            pretty: null,
+                            raw: null
+                        }
+                    }
+                }))
             }
-            if (searchQuery) {
-                filteredFormatted = filteredFormatted.filter((line) =>
-                    line.summary.toLowerCase().includes(searchQuery.toLowerCase()),
+        })
+    }, [logs])
+
+    // Set initial active tab
+    useEffect(() => {
+        if (logs.length > 0 && !activeTab) {
+            setActiveTab(logs[0].id)
+        }
+    }, [logs])
+
+    // Get current tab's state
+    const currentTabState = tabStates[activeTab] || {
+        prettyMode: false,
+        debugOnly: false,
+        searchQuery: '',
+        showTimeline: false,
+        showReplay: false,
+        selectedLine: null,
+        expandedLines: new Set(),
+        selectedLineContent: { id: '', pretty: null, raw: null }
+    }
+
+    // Update state for current tab
+    const updateTabState = (updates: Partial<TabState>) => {
+        setTabStates(prev => ({
+            ...prev,
+            [activeTab]: {
+                ...prev[activeTab],
+                ...updates
+            }
+        }))
+    }
+
+    // Filter lines based on current tab's state
+    useEffect(() => {
+        const newFilteredLines: Record<string, CollapsibleLine[]> = {}
+        
+        logs.forEach(log => {
+            const state = tabStates[log.id]
+            if (!state || !log.content) {
+                newFilteredLines[log.id] = []
+                return
+            }
+
+            const allLines = log.content.split('\n')
+            let processedLines = allLines.map((line, index) => ({
+                line,
+                originalIndex: index,
+            }))
+
+            if (state.debugOnly) {
+                processedLines = processedLines.filter(({ line }) => line.includes('USER_DEBUG'))
+            }
+
+            if (state.searchQuery) {
+                processedLines = processedLines.filter(({ line }) => 
+                    line.toLowerCase().includes(state.searchQuery.toLowerCase())
                 )
             }
-            setFilteredLines(
-                filteredFormatted.map((line) => ({
+
+            if (state.prettyMode) {
+                const formattedLines = formatLogs(allLines)
+                let filteredFormatted = formattedLines
+                
+                if (state.debugOnly) {
+                    filteredFormatted = formattedLines.filter((line) => 
+                        line.summary.includes('DEBUG')
+                    )
+                }
+                
+                if (state.searchQuery) {
+                    filteredFormatted = filteredFormatted.filter((line) =>
+                        line.summary.toLowerCase().includes(state.searchQuery.toLowerCase())
+                    )
+                }
+
+                newFilteredLines[log.id] = filteredFormatted.map((line) => ({
                     ...line,
                     type: line.type as CollapsibleLine['type'],
-                    isSelected: selectedLineContent?.id === `line_${line.originalIndex}`,
-                })),
-            )
-        } else {
-            setFilteredLines(
-                processedLines.map(({ line, originalIndex }) => ({
+                    isSelected: state.selectedLineContent?.id === `line_${line.originalIndex}`,
+                }))
+            } else {
+                newFilteredLines[log.id] = processedLines.map(({ line, originalIndex }) => ({
                     id: `line_${originalIndex}`,
                     time: '',
                     summary: line,
                     type: 'STANDARD',
                     isCollapsible: false,
                     originalIndex,
-                    isSelected: selectedLineContent?.id === `line_${originalIndex}`,
-                })),
-            )
-        }
-    }, [content, searchQuery, debugOnly, prettyMode, selectedLineContent?.id])
+                    isSelected: state.selectedLineContent?.id === `line_${originalIndex}`,
+                }))
+            }
+        })
+
+        setFilteredLines(newFilteredLines)
+    }, [logs, tabStates])
 
     const toggleLine = (lineId: string) => {
-        setExpandedLines((prev) => {
-            const next = new Set(prev)
-            if (next.has(lineId)) {
-                next.delete(lineId)
-            } else {
-                next.add(lineId)
-            }
-            return next
-        })
+        const newExpandedLines = new Set(currentTabState.expandedLines)
+        if (newExpandedLines.has(lineId)) {
+            newExpandedLines.delete(lineId)
+        } else {
+            newExpandedLines.add(lineId)
+        }
+        updateTabState({ expandedLines: newExpandedLines })
     }
 
     const handleLineClick = (line: CollapsibleLine, isExpandToggle: boolean = false) => {
@@ -313,29 +336,44 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
         console.log('Clicked line details:', {
             id: line.id,
             originalIndex: line.originalIndex,
-            currentSelectedId: selectedLineContent?.id,
+            currentSelectedId: currentTabState.selectedLineContent?.id,
         })
 
         // Handle deselection
-        if (selectedLineContent?.id === `line_${line.originalIndex}`) {
-            setSelectedLineContent({ id: '', raw: null, pretty: null })
+        if (currentTabState.selectedLineContent?.id === `line_${line.originalIndex}`) {
+            updateTabState({ selectedLineContent: { id: '', raw: null, pretty: null } })
             return
         }
         // Get raw line using the original index
-        const rawLine = content?.split('\n')?.[line.originalIndex ?? 0] || null
+        const rawLine = logs.find(log => log.id === activeTab)?.content?.split('\n')?.[line.originalIndex ?? 0] || null
 
         const newSelectedContent = {
             id: `line_${line.originalIndex}`,
             raw: rawLine,
-            pretty: prettyMode ? `${line.time}|${line.summary}` : null,
+            pretty: currentTabState.prettyMode ? `${line.time}|${line.summary}` : null,
         }
 
         console.log('Setting selected line content:', newSelectedContent)
-        setSelectedLineContent(newSelectedContent)
+        updateTabState({ selectedLineContent: newSelectedContent })
+    }
+
+    const handleCloseTab = (e: React.MouseEvent, logId: string) => {
+        e.preventDefault()
+        e.stopPropagation()
+        
+        // If we're closing the active tab, switch to another tab
+        if (activeTab === logId) {
+            const remainingLogs = logs.filter(log => log.id !== logId)
+            if (remainingLogs.length > 0) {
+                setActiveTab(remainingLogs[0].id)
+            }
+        }
+        
+        onCloseLog?.(logId)
     }
 
     const renderLine = (line: CollapsibleLine) => {
-        const isSelected = selectedLineContent?.id === `line_${line.originalIndex}`
+        const isSelected = currentTabState.selectedLineContent?.id === `line_${line.originalIndex}`
 
         const baseClasses = `
             py-1
@@ -343,25 +381,23 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
             ${isSelected ? 'bg-blue-100 hover:bg-blue-200 dark:bg-blue-900 dark:hover:bg-blue-800' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}
         `
 
-        if (!prettyMode || !line.isCollapsible) {
+        if (!currentTabState.prettyMode || !line.isCollapsible) {
             return (
                 <div
                     className={baseClasses}
                     onClick={() => line.type !== 'LIMITS' && handleLineClick(line)}
-                    ref={isSelected ? selectedLineRef : null}
                 >
                     <div className="px-2">{renderContent(line)}</div>
                 </div>
             )
         }
 
-        const isExpanded = expandedLines.has(line.id)
+        const isExpanded = currentTabState.expandedLines.has(line.id)
 
         return (
             <div
                 className={baseClasses}
                 onClick={() => line.type !== 'LIMITS' && handleLineClick(line)}
-                ref={isSelected ? selectedLineRef : null}
             >
                 <div className="flex items-center gap-2 px-2">{renderContent(line)}</div>
                 {isExpanded && line.details && (
@@ -372,7 +408,7 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
     }
 
     const handleEventClick = (lineNumber: number) => {
-        setShowTimeline(false)
+        updateTabState({ showTimeline: false })
         // Scroll to the line in the log
         if (logContentRef.current) {
             const lineElement = logContentRef.current.querySelector(`[data-line="${lineNumber}"]`)
@@ -380,73 +416,133 @@ export function LogViewer({ content, isLoading }: LogViewerProps) {
         }
     }
 
-    return (
-        <div className="h-full flex flex-col ml-1 relative">
-            {isLoading && (
-                <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
-                </div>
-            )}
+    if (!logs || logs.length === 0) {
+        return (
+            <div className="flex flex-col h-full justify-center items-center">
+                <MousePointerClick className="w-4 h-4 text-gray-500 dark:text-white animate-pulse" />
+                <span className="text-sm text-gray-500 dark:text-white">
+                    No logs to display
+                </span>
+            </div>
+        )
+    }
 
+    return (
+        <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="h-full flex flex-col"
+        >
+            {/* Controls bar - full width with proper spacing */}
             <div className="flex-none border-b border-gray-200 dark:border-gray-800 p-2">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between w-full">
+                    {/* Left side with search */}
+                    <div className="flex items-center gap-2 flex-1">
                         <Search className="w-4 h-4 text-gray-500" />
                         <Input
                             placeholder="Filter log lines..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
+                            value={currentTabState.searchQuery}
+                            onChange={(e) => updateTabState({ searchQuery: e.target.value })}
                             className="w-64"
                         />
-                        <span className="text-sm text-gray-500">Showing {filteredLines.length} lines</span>
+                        <span className="text-sm text-gray-500">
+                            Showing {filteredLines[activeTab]?.length || 0} lines
+                        </span>
                     </div>
+
+                    {/* Right side with controls */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center space-x-2">
-                            <Switch id="pretty-mode" checked={prettyMode} onCheckedChange={setPrettyMode} />
+                            <Switch
+                                id="pretty-mode"
+                                checked={currentTabState.prettyMode}
+                                onCheckedChange={(checked) => updateTabState({ prettyMode: checked })}
+                            />
                             <Label htmlFor="pretty-mode" className="text-sm text-gray-600 dark:text-white">
                                 Pretty
                             </Label>
                         </div>
                         <div className="flex items-center space-x-2">
-                            <Switch id="debug-mode" checked={debugOnly} onCheckedChange={setDebugOnly} />
+                            <Switch
+                                id="debug-mode"
+                                checked={currentTabState.debugOnly}
+                                onCheckedChange={(checked) => updateTabState({ debugOnly: checked })}
+                            />
                             <Label htmlFor="debug-mode" className="text-sm text-gray-600 dark:text-white">
                                 Debug Only
                             </Label>
                         </div>
-                        <Button variant="outline" size="sm" onClick={() => setShowTimeline(!showTimeline)}>
+                        <Button variant="outline" size="sm" onClick={() => updateTabState({ showTimeline: !currentTabState.showTimeline })}>
                             <LineChart className="w-4 h-4 mr-1" />
-                            {showTimeline ? 'Hide Timeline' : 'Timeline'}
+                            {currentTabState.showTimeline ? 'Hide Timeline' : 'Timeline'}
                         </Button>
-                        <Button variant="outline" disabled size="sm" onClick={() => setShowReplay(!showReplay)}>
-                            {showReplay ? 'Hide Replay' : 'Replay'}
+                        <Button variant="outline" disabled size="sm" onClick={() => updateTabState({ showReplay: !currentTabState.showReplay })}>
+                            {currentTabState.showReplay ? 'Hide Replay' : 'Replay'}
                         </Button>
                     </div>
                 </div>
             </div>
 
-            {/* Timeline section */}
-            {showTimeline && (
-                <div className="flex-none border-b border-gray-200 dark:border-gray-800">
-                    {/* <Timeline logContent={content} /> */}
-                    <TraceViewer
-                        content={content}
-                        onClose={() => setShowTimeline(false)}
-                        onEventClick={handleEventClick}
-                    />
-                </div>
-            )}
-            {/* Replay section */}
-            {showReplay && (
-                <div className="flex-none border-b border-gray-200 dark:border-gray-800">
-                    <LogReplay content={content} onLineSelect={setSelectedLine} />
-                </div>
-            )}
-            {/* Log content */}
-            <div className="flex-1 overflow-auto font-mono text-sm">
-                {filteredLines.map((line, index) => (
-                    <div key={index}>{renderLine(line)}</div>
-                ))}
+            {/* Tabs bar with close button */}
+            <div className="flex-none border-b border-gray-200 dark:border-gray-800">
+                <TabsList className="w-full justify-start px-2">
+                    {logs.map((log) => (
+                        <TabsTrigger key={log.id} value={log.id} className="group relative pr-6">
+                            {formatLogTime(log.time)} ({log.duration})
+                            <div
+                                onClick={(e) => handleCloseTab(e, log.id)}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 rounded-full p-0.5 
+                                         hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer
+                                         opacity-0 group-hover:opacity-100 transition-opacity"
+                                role="button"
+                                aria-label={`Close ${formatLogTime(log.time)} tab`}
+                            >
+                                <X className="h-3 w-3" />
+                            </div>
+                        </TabsTrigger>
+                    ))}
+                </TabsList>
             </div>
-        </div>
+
+            {/* Tab content */}
+            {logs.map((log) => (
+                <TabsContent
+                    key={log.id}
+                    value={log.id}
+                    className="flex-1 overflow-hidden relative"
+                >
+                    {isLoading && (
+                        <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                            <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                        </div>
+                    )}
+
+                    {currentTabState.showTimeline && (
+                        <div className="flex-none border-b border-gray-200 dark:border-gray-800">
+                            <TraceViewer
+                                content={log.content}
+                                onClose={() => updateTabState({ showTimeline: false })}
+                                onEventClick={handleEventClick}
+                            />
+                        </div>
+                    )}
+
+                    {currentTabState.showReplay && (
+                        <div className="flex-none border-b border-gray-200 dark:border-gray-800">
+                            <LogReplay 
+                                content={log.content} 
+                                onLineSelect={(line) => updateTabState({ selectedLine: line })} 
+                            />
+                        </div>
+                    )}
+
+                    <div className="flex-1 overflow-auto font-mono text-sm">
+                        {filteredLines[log.id]?.map((line, index) => (
+                            <div key={index}>{renderLine(line)}</div>
+                        ))}
+                    </div>
+                </TabsContent>
+            ))}
+        </Tabs>
     )
 }
