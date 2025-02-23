@@ -50,18 +50,40 @@ export const storage = {
             .sort((a, b) => new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime())
     },
 
-    setCurrentDomain(domain: string) {
-        console.log('Setting current domain:', domain)
-        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
-        allData.current_domain = domain
-        localStorage.setItem('sf_data', JSON.stringify(allData))
+    getCurrentDomain(): string | null {
+        if (typeof window !== 'undefined') {
+            // First try to get domain from URL
+            const urlParams = new URLSearchParams(window.location.search)
+            const orgFromUrl = urlParams.get('org')
+            
+            if (orgFromUrl) {
+                return orgFromUrl
+            }
+
+            // If not in URL but in localStorage, update URL if not on auth page
+            const storedDomain = localStorage.getItem('sf_current_domain')
+            if (storedDomain && !window.location.pathname.startsWith('/auth')) {
+                // Update URL without causing navigation
+                const newUrl = new URL(window.location.href)
+                newUrl.searchParams.set('org', storedDomain)
+                window.history.replaceState({}, '', newUrl.toString())
+                return storedDomain
+            }
+            return storedDomain
+        }
+        return null
     },
 
-    getCurrentDomain(): string | null {
-        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}')
-        const domain = allData.current_domain || null
-        console.log('Getting current domain:', domain)
-        return domain
+    setCurrentDomain(domain: string) {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('sf_current_domain', domain)
+            // Also update URL if not on auth page
+            if (!window.location.pathname.startsWith('/auth')) {
+                const newUrl = new URL(window.location.href)
+                newUrl.searchParams.set('org', domain)
+                window.history.replaceState({}, '', newUrl.toString())
+            }
+        }
     },
 
     addConnectedOrg(org: ConnectedOrg) {

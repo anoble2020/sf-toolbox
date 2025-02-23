@@ -1,20 +1,24 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Code, Users, Bell, Database, Shield, Radio, Clock, TrendingUp, Mail, Loader2 } from 'lucide-react'
 import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts'
 import { refreshAccessToken } from '@/lib/auth'
 import { formatInTimeZone } from 'date-fns-tz'
 import { storage } from '@/lib/storage'
+import { useSearchParams } from 'next/navigation'
 
-const SalesforceDashboard = () => {
+function DashboardContent() {
     const [timeRange] = useState('24h')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [orgData, setOrgData] = useState<any>(null)
     const [userTimezone, setUserTimezone] = useState<string | null>(null)
+    const searchParams = useSearchParams()
+
     useEffect(() => {
+        console.log('Dashboard mounted');
         const currentDomain = storage.getCurrentDomain()
         const userTimezone = storage.getFromDomain(currentDomain || '', 'sf_user_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone;
         setUserTimezone(userTimezone)
@@ -23,11 +27,24 @@ const SalesforceDashboard = () => {
     useEffect(() => {
         const fetchOrgData = async () => {
             try {
-                const currentDomain = storage.getCurrentDomain();
-                if (!currentDomain) throw new Error('No current domain found');
+                // Log URL parameters
+                console.log('Dashboard - URL params:', 
+                          Object.fromEntries(searchParams.entries()))
+                
+                // Get current domain and log it
+                const currentDomain = storage.getCurrentDomain()
+                console.log('Dashboard - Current domain:', currentDomain)
+                
+                if (!currentDomain) {
+                    throw new Error('No current domain found')
+                }
 
-                const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token');
-                if (!refreshToken) throw new Error('No refresh token found');
+                const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token')
+                console.log('Dashboard - Has refresh token:', !!refreshToken)
+                
+                if (!refreshToken) {
+                    throw new Error('No refresh token found')
+                }
 
                 const { access_token, instance_url } = await refreshAccessToken(refreshToken);
 
@@ -53,6 +70,22 @@ const SalesforceDashboard = () => {
         };
 
         fetchOrgData();
+    }, [searchParams]);
+
+    useEffect(() => {
+        console.log('Dashboard mounted');
+        const currentDomain = storage.getCurrentDomain();
+        console.log('Current domain from storage:', currentDomain);
+        
+        // Log all stored data
+        const allData = JSON.parse(localStorage.getItem('sf_data') || '{}');
+        console.log('All stored SF data:', allData);
+        
+        // Check refresh token for current domain
+        if (currentDomain) {
+            const refreshToken = storage.getFromDomain(currentDomain, 'refresh_token');
+            console.log('Has refresh token for current domain:', !!refreshToken);
+        }
     }, []);
 
     if(loading){
@@ -341,4 +374,14 @@ const SalesforceDashboard = () => {
     )
 }
 
-export default SalesforceDashboard
+export default function SalesforceDashboard() {
+    return (
+        <Suspense fallback={
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-50">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+            </div>
+        }>
+            <DashboardContent />
+        </Suspense>
+    )
+}
