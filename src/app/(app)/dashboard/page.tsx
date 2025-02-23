@@ -7,9 +7,7 @@ import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tool
 import { refreshAccessToken } from '@/lib/auth'
 import { formatInTimeZone } from 'date-fns-tz'
 import { storage } from '@/lib/storage'
-import getAllSearchParams from '@/lib/params'
 import { useSearchParams } from 'next/navigation'
-
 
 function DashboardContent() {
     const [timeRange] = useState('24h')
