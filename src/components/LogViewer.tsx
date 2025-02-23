@@ -487,7 +487,11 @@ export function LogViewer({ logs = [], isLoading, onCloseLog }: LogViewerProps) 
             <div className="flex-none border-b border-gray-200 dark:border-gray-800">
                 <TabsList className="w-full justify-start px-2">
                     {logs.map((log) => (
-                        <TabsTrigger key={log.id} value={log.id} className="group relative pr-6">
+                        <TabsTrigger 
+                            key={log.id} 
+                            value={log.id} 
+                            className="group relative pr-6 data-[state=inactive]:border data-[state=inactive]:border-gray-300 dark:data-[state=inactive]:border-gray-800"
+                        >
                             {formatLogTime(log.time)} ({log.duration})
                             <div
                                 onClick={(e) => handleCloseTab(e, log.id)}
