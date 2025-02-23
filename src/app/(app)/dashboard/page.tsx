@@ -7,19 +7,17 @@ import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tool
 import { refreshAccessToken } from '@/lib/auth'
 import { formatInTimeZone } from 'date-fns-tz'
 import { storage } from '@/lib/storage'
+import getAllSearchParams from '@/lib/params'
 import { useSearchParams } from 'next/navigation'
 
-function SearchParamsHandler() {
-    const searchParams = useSearchParams()
-    return <DashboardContent searchParams={searchParams} />
-}
 
-function DashboardContent({ searchParams }: { searchParams: URLSearchParams }) {
+function DashboardContent() {
     const [timeRange] = useState('24h')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [orgData, setOrgData] = useState<any>(null)
     const [userTimezone, setUserTimezone] = useState<string | null>(null)
+    const searchParams = useSearchParams()
 
     useEffect(() => {
         console.log('Dashboard mounted');
@@ -385,7 +383,7 @@ export default function SalesforceDashboard() {
                 <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
             </div>
         }>
-            <SearchParamsHandler />
+            <DashboardContent />
         </Suspense>
     )
 }
