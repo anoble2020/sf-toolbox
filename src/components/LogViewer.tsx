@@ -192,6 +192,7 @@ const renderContent = (line: CollapsibleLine) => {
 
 export function LogViewer({ logs = [], isLoading, onCloseLog, tabStates, setTabStates, activeLogId }: LogViewerProps) {
     const [activeTab, setActiveTab] = useState<string>(activeLogId || '')
+    const logContentRef = useRef<HTMLDivElement>(null)
     
     // Store state for each tab in a Record
     const [filteredLines, setFilteredLines] = useState<Record<string, CollapsibleLine[]>>({})
@@ -327,7 +328,7 @@ export function LogViewer({ logs = [], isLoading, onCloseLog, tabStates, setTabS
                     isSelected: state.selectedLineContent?.id === `line_${line.originalIndex}`,
                 }))
             } else {
-                newFilteredLines[log.id] = processedLines.map(({ line, originalIndex }) => ({
+                newFilteredLines[log.id] = processedLines.map(({ line, originalIndex }: { line: string, originalIndex: number }) => ({
                     id: `line_${originalIndex}`,
                     time: '',
                     summary: line,
@@ -566,9 +567,9 @@ export function LogViewer({ logs = [], isLoading, onCloseLog, tabStates, setTabS
                             </div>
                         )}
 
-                        <div className="flex-1 overflow-auto font-mono text-sm">
+                        <div className="flex-1 overflow-auto font-mono text-sm" ref={logContentRef}>
                             {filteredLines[log.id]?.map((line, index) => (
-                                <div key={index}>{renderLine(line)}</div>
+                                <div key={index} data-line={line.originalIndex}>{renderLine(line)}</div>
                             ))}
                         </div>
                     </TabsContent>
