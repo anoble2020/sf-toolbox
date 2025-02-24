@@ -7,6 +7,7 @@ import { queryLogs, getLogBody } from "@/lib/salesforce"
 import { Loader2, MousePointerClick } from "lucide-react"
 import { storage } from "@/lib/storage"
 import { toast } from "sonner"
+import { TabState } from "@/lib/types"
 
 interface Log {
   id: string
@@ -28,6 +29,21 @@ interface LogTab {
   duration: string
 }
 
+/*interface TabState {
+  prettyMode: boolean
+  debugOnly: boolean
+  searchQuery: string
+  showTimeline: boolean
+  showReplay: boolean
+  selectedLine: number | null
+  expandedLines: Set<number>
+  selectedLineContent: {
+    id: string
+    pretty: string | null
+    raw: string | null
+  }
+}*/
+
 export default function LogsPage() {
   const [logs, setLogs] = useState<Log[]>([])
   const [selectedLogs, setSelectedLogs] = useState<LogTab[]>([])
@@ -36,6 +52,8 @@ export default function LogsPage() {
   const [userInfo, setUserInfo] = useState<any>(null)
   const [currentUserOnly, setCurrentUserOnly] = useState(true)
   const [isLoadingLog, setIsLoadingLog] = useState(false)
+  const [tabStates, setTabStates] = useState<Record<string, TabState>>({})
+  const [activeTab, setActiveTab] = useState('')
 
   const formatDuration = (ms?: number): string => {
     if (!ms) return 'N/A'
@@ -127,26 +145,37 @@ export default function LogsPage() {
   }
 
   const handleSelectLog = async (log: Log) => {
-    // Check if log is already selected
-    if (selectedLogs.some(selected => selected.id === log.id)) {
+    // If the log is already open, just make it active
+    if (tabStates[log.id]) {
+      setActiveTab(log.id)
       return
     }
 
-    setIsLoadingLog(true)
+    // Otherwise, proceed with loading the log and initializing its state
     try {
-      const content = await getLogBody(log.id)
-      
-      const newLog: LogTab = {
-        id: log.id,
-        content,
-        time: log.time,
-        duration: log.duration
-      }
-
-      setSelectedLogs(prev => [...prev, newLog])
+      setIsLoadingLog(true)
+      const logContent = await getLogBody(log.id)
+      setSelectedLogs(prev => [...prev, { ...log, content: logContent }])
+      setTabStates(prev => ({
+        ...prev,
+        [log.id]: {
+          prettyMode: false,
+          debugOnly: false,
+          searchQuery: '',
+          showTimeline: false,
+          showReplay: false,
+          selectedLine: null,
+          expandedLines: new Set(),
+          selectedLineContent: {
+            id: '',
+            pretty: null,
+            raw: null
+          }
+        }
+      }))
+      setActiveTab(log.id)
     } catch (error) {
       console.error('Error fetching log content:', error)
-      toast.error('Failed to fetch log content')
     } finally {
       setIsLoadingLog(false)
     }
@@ -220,6 +249,9 @@ export default function LogsPage() {
         logs={selectedLogs}
         isLoading={isLoadingLog}
         onCloseLog={handleCloseLog}
+        tabStates={tabStates}
+        setTabStates={setTabStates}
+        activeLogId={activeTab}
       />
       <LogsTable 
         logs={filteredLogs}

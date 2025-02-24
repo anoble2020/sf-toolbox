@@ -22,9 +22,12 @@ export interface LogTab {
 }
 
 export interface LogViewerProps {
-    logs: LogTab[]
+    logs: Array<any>
     isLoading?: boolean
     onCloseLog?: (logId: string) => void
+    tabStates: Record<string, TabState>
+    setTabStates: (value: React.SetStateAction<Record<string, TabState>>) => void
+    activeLogId?: string
 }
 
 export interface TabState {
