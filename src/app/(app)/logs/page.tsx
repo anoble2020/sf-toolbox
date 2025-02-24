@@ -182,7 +182,21 @@ export default function LogsPage() {
   }
 
   const handleCloseLog = (logId: string) => {
+    // Remove from selectedLogs
     setSelectedLogs(prev => prev.filter(log => log.id !== logId))
+    
+    // Remove from tabStates
+    setTabStates(prev => {
+      const newState = { ...prev }
+      delete newState[logId]
+      return newState
+    })
+
+    // If we're closing the active tab, set active tab to another open tab or empty string
+    if (activeTab === logId) {
+      const remainingTabs = Object.keys(tabStates).filter(id => id !== logId)
+      setActiveTab(remainingTabs.length > 0 ? remainingTabs[0] : '')
+    }
   }
 
   useEffect(() => {
